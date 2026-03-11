@@ -1,0 +1,115 @@
+.flow-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0e1a 0%, #1a1f35 100%);
+  color: #fff;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.flow-header {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.flow-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.flow-method-badge {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  background: rgba(0, 255, 135, 0.1);
+  color: #00ff87;
+  border: 1px solid rgba(0, 255, 135, 0.3);
+}
+
+.flow-info h1 {
+  font-size: 28px;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  background: linear-gradient(135deg, #fff 0%, #00d9ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.flow-details {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto 20px;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(0, 217, 255, 0.1);
+  border: 1px solid rgba(0, 217, 255, 0.2);
+  border-radius: 8px;
+  color: #00d9ff;
+  font-size: 14px;
+}
+
+.flow-visualization {
+  max-width: 1400px;
+  width: 100%;
+  height: calc(100vh - 240px);
+  min-height: 600px;
+  margin: 0 auto;
+  background: rgba(26, 31, 53, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 217, 255, 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+.flow-visualization .react-flow-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.react-flow {
+  background: rgba(10, 14, 26, 0.8);
+}
+
+.react-flow__node {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__controls {
+  background: rgba(26, 31, 53, 0.9);
+  border: 1px solid rgba(0, 217, 255, 0.2);
+  border-radius: 8px;
+}
+
+.react-flow__controls-button {
+  background: rgba(0, 217, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+  color: #00d9ff;
+}
+
+.react-flow__controls-button:hover {
+  background: rgba(0, 217, 255, 0.2);
+}
+
+.react-flow__minimap {
+  border-radius: 8px;
+  overflow: hidden;
+}
