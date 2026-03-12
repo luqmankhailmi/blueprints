@@ -50,4 +50,13 @@ export const githubAPI = {
   getBranches: (owner, repo) => api.get(`/github/repositories/${owner}/${repo}/branches`),
 };
 
+// Architecture endpoints
+export const architectureAPI = {
+  getArchitecture: (projectId) => api.get(`/architecture/${projectId}`),
+  getDirectoryStructure: (projectId) => api.get(`/architecture/${projectId}/directory`),
+  getFileContent: (projectId, filePath) => api.get(`/architecture/${projectId}/file`, {
+    params: { path: filePath }
+  }),
+};
+
 export default api;

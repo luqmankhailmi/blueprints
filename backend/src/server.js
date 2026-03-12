@@ -40,7 +40,7 @@ app.use('/api/architecture', architectureRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'Blueprints API is running',
+    message: 'Flow Tracker API is running',
     environment: process.env.NODE_ENV || 'development'
   });
 });

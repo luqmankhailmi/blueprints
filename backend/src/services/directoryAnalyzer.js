@@ -1,242 +1,162 @@
-const fs = require('fs-extra');
+const fs = require('fs').promises;
 const path = require('path');
 
-/**
- * Analyze project directory structure
- */
 class DirectoryAnalyzer {
   constructor(projectPath) {
     this.projectPath = projectPath;
-    this.ignoreDirs = [
-      'node_modules',
-      '.git',
-      'dist',
-      'build',
-      '.next',
-      'coverage',
-      '.cache',
-      'tmp',
-      'temp'
-    ];
-  }
-
-  /**
-   * Build complete directory tree with file metadata
-   */
-  async analyze() {
-    const structure = await this.buildTree(this.projectPath);
-    const stats = this.calculateStats(structure);
-    
-    return {
-      tree: structure,
-      stats,
-      entryPoints: this.findEntryPoints(structure)
+    this.stats = {
+      totalFiles: 0,
+      totalDirectories: 0,
+      totalSize: 0,
+      filesByExtension: {},
+      largestFiles: [],
     };
   }
 
-  /**
-   * Recursively build directory tree
-   */
-  async buildTree(currentPath, depth = 0, maxDepth = 10) {
+  async analyze() {
+    try {
+      const structure = await this.buildStructure(this.projectPath);
+      
+      return {
+        structure,
+        stats: this.stats,
+        analyzedAt: new Date(),
+      };
+    } catch (error) {
+      console.error('Directory analysis error:', error);
+      throw error;
+    }
+  }
+
+  async buildStructure(dirPath, relativePath = '', depth = 0, maxDepth = 5) {
     if (depth > maxDepth) return null;
 
-    const relativePath = path.relative(this.projectPath, currentPath);
-    const name = path.basename(currentPath);
-
-    // Skip ignored directories
-    if (this.ignoreDirs.includes(name)) {
-      return null;
-    }
-
-    const stats = await fs.stat(currentPath);
-
-    if (stats.isFile()) {
-      return {
-        type: 'file',
-        name,
-        path: relativePath || name,
-        size: stats.size,
-        extension: path.extname(name),
-        modified: stats.mtime,
-        lines: await this.countLines(currentPath)
-      };
-    }
-
-    if (stats.isDirectory()) {
-      const items = await fs.readdir(currentPath);
-      const children = [];
-
-      for (const item of items) {
-        const childPath = path.join(currentPath, item);
-        const child = await this.buildTree(childPath, depth + 1, maxDepth);
-        if (child) {
-          children.push(child);
-        }
-      }
-
-      return {
-        type: 'directory',
-        name,
-        path: relativePath || '.',
-        children,
-        fileCount: this.countFiles(children),
-        size: this.calculateDirSize(children)
-      };
-    }
-
-    return null;
-  }
-
-  /**
-   * Count lines in a file
-   */
-  async countLines(filePath) {
     try {
-      const ext = path.extname(filePath);
-      // Only count lines for text files
-      const textExtensions = ['.js', '.jsx', '.ts', '.tsx', '.css', '.html', '.json', '.md', '.txt', '.env'];
-      
-      if (!textExtensions.includes(ext)) {
-        return 0;
+      const stats = await fs.stat(dirPath);
+      const name = path.basename(dirPath);
+
+      // Skip certain directories
+      if (this.shouldSkip(name)) {
+        return null;
       }
 
-      const content = await fs.readFile(filePath, 'utf-8');
-      return content.split('\n').length;
-    } catch (error) {
-      return 0;
-    }
-  }
+      if (stats.isDirectory()) {
+        this.stats.totalDirectories++;
+        
+        const entries = await fs.readdir(dirPath);
+        const children = [];
 
-  /**
-   * Count total files in a directory tree
-   */
-  countFiles(children) {
-    return children.reduce((count, child) => {
-      if (child.type === 'file') return count + 1;
-      if (child.type === 'directory') return count + child.fileCount;
-      return count;
-    }, 0);
-  }
+        for (const entry of entries) {
+          const fullPath = path.join(dirPath, entry);
+          const childRelativePath = path.join(relativePath, entry);
+          const child = await this.buildStructure(fullPath, childRelativePath, depth + 1, maxDepth);
+          
+          if (child) {
+            children.push(child);
+          }
+        }
 
-  /**
-   * Calculate total size of directory
-   */
-  calculateDirSize(children) {
-    return children.reduce((total, child) => {
-      return total + (child.size || 0);
-    }, 0);
-  }
+        return {
+          name,
+          type: 'directory',
+          path: relativePath || '/',
+          children: children.sort((a, b) => {
+            // Directories first, then files
+            if (a.type !== b.type) {
+              return a.type === 'directory' ? -1 : 1;
+            }
+            return a.name.localeCompare(b.name);
+          }),
+          size: await this.getDirectorySize(dirPath),
+        };
+      } else {
+        this.stats.totalFiles++;
+        this.stats.totalSize += stats.size;
 
-  /**
-   * Calculate overall statistics
-   */
-  calculateStats(tree) {
-    const stats = {
-      totalFiles: 0,
-      totalSize: 0,
-      totalLines: 0,
-      filesByType: {},
-      largestFiles: []
-    };
-
-    const traverse = (node) => {
-      if (node.type === 'file') {
-        stats.totalFiles++;
-        stats.totalSize += node.size;
-        stats.totalLines += node.lines || 0;
-
-        // Track by extension
-        const ext = node.extension || 'no-extension';
-        stats.filesByType[ext] = (stats.filesByType[ext] || 0) + 1;
+        const ext = path.extname(name).toLowerCase();
+        this.stats.filesByExtension[ext] = (this.stats.filesByExtension[ext] || 0) + 1;
 
         // Track largest files
-        stats.largestFiles.push({
-          name: node.name,
-          path: node.path,
-          size: node.size
+        this.stats.largestFiles.push({
+          name,
+          path: relativePath,
+          size: stats.size,
         });
-      } else if (node.type === 'directory' && node.children) {
-        node.children.forEach(traverse);
-      }
-    };
+        this.stats.largestFiles.sort((a, b) => b.size - a.size);
+        this.stats.largestFiles = this.stats.largestFiles.slice(0, 10);
 
-    traverse(tree);
-
-    // Sort largest files
-    stats.largestFiles.sort((a, b) => b.size - a.size);
-    stats.largestFiles = stats.largestFiles.slice(0, 10);
-
-    return stats;
-  }
-
-  /**
-   * Find likely entry points (main files)
-   */
-  findEntryPoints(tree) {
-    const entryPoints = [];
-    
-    const entryFileNames = [
-      'index.js',
-      'index.ts',
-      'main.js',
-      'app.js',
-      'server.js',
-      'index.jsx',
-      'index.tsx'
-    ];
-
-    const traverse = (node, parentPath = '') => {
-      if (node.type === 'file' && entryFileNames.includes(node.name.toLowerCase())) {
-        entryPoints.push({
-          name: node.name,
-          path: node.path,
-          type: this.guessEntryPointType(node.path)
-        });
-      } else if (node.type === 'directory' && node.children) {
-        node.children.forEach(child => traverse(child, node.path));
-      }
-    };
-
-    traverse(tree);
-    return entryPoints;
-  }
-
-  /**
-   * Guess the type of entry point based on path
-   */
-  guessEntryPointType(filePath) {
-    if (filePath.includes('server') || filePath.includes('backend')) return 'backend';
-    if (filePath.includes('src') || filePath.includes('client')) return 'frontend';
-    if (filePath === 'index.js' || filePath === 'index.ts') return 'main';
-    return 'unknown';
-  }
-
-  /**
-   * Get file content (with size limit)
-   */
-  async getFileContent(relativePath, maxSize = 500000) { // 500KB limit
-    try {
-      const fullPath = path.join(this.projectPath, relativePath);
-      const stats = await fs.stat(fullPath);
-
-      if (stats.size > maxSize) {
         return {
-          error: 'File too large',
-          size: stats.size
+          name,
+          type: 'file',
+          path: relativePath,
+          size: stats.size,
+          extension: ext,
+          modified: stats.mtime,
         };
       }
+    } catch (error) {
+      console.error(`Error analyzing ${dirPath}:`, error.message);
+      return null;
+    }
+  }
 
+  async getDirectorySize(dirPath) {
+    let size = 0;
+    try {
+      const entries = await fs.readdir(dirPath);
+      
+      for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry);
+        const stats = await fs.stat(fullPath);
+        
+        if (stats.isDirectory()) {
+          if (!this.shouldSkip(entry)) {
+            size += await this.getDirectorySize(fullPath);
+          }
+        } else {
+          size += stats.size;
+        }
+      }
+    } catch (error) {
+      // Ignore errors for inaccessible directories
+    }
+    
+    return size;
+  }
+
+  shouldSkip(name) {
+    const skipPatterns = [
+      'node_modules',
+      '.git',
+      '.next',
+      'dist',
+      'build',
+      'coverage',
+      '.cache',
+      '.vscode',
+      '.idea',
+      '__pycache__',
+      'venv',
+      '.env',
+    ];
+    
+    return skipPatterns.includes(name) || name.startsWith('.');
+  }
+
+  async getFileContent(filePath) {
+    try {
+      const fullPath = path.join(this.projectPath, filePath);
       const content = await fs.readFile(fullPath, 'utf-8');
+      const stats = await fs.stat(fullPath);
+      
       return {
         content,
         size: stats.size,
-        lines: content.split('\n').length,
-        extension: path.extname(relativePath)
+        modified: stats.mtime,
+        extension: path.extname(filePath),
       };
     } catch (error) {
-      return {
-        error: error.message
-      };
+      throw new Error(`Failed to read file: ${error.message}`);
     }
   }
 }

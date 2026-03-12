@@ -1,30 +1,19 @@
 const express = require('express');
+const { verifyToken } = require('../middleware/auth');
+const {
+  getArchitecture,
+  getDirectoryStructure,
+  getFileContent,
+} = require('../controllers/architectureController');
+
 const router = express.Router();
-const architectureController = require('../controllers/architectureController');
-const { requireAuth } = require('../middleware/auth');
 
 // All routes require authentication
-router.use(requireAuth);
+router.use(verifyToken);
 
-// Get complete architecture analysis
-router.get('/:id', architectureController.getArchitecture);
-
-// Get directory structure
-router.get('/:id/directory', architectureController.getDirectoryStructure);
-
-// Get dependencies
-router.get('/:id/dependencies', architectureController.getDependencies);
-
-// Get dependency graph
-router.get('/:id/dependencies/graph', architectureController.getDependencyGraph);
-
-// Get tech stack
-router.get('/:id/tech-stack', architectureController.getTechStack);
-
-// Get file content
-router.get('/:id/file', architectureController.getFileContent);
-
-// Get statistics
-router.get('/:id/stats', architectureController.getStats);
+// Routes
+router.get('/:id', getArchitecture);
+router.get('/:id/directory', getDirectoryStructure);
+router.get('/:id/file', getFileContent);
 
 module.exports = router;

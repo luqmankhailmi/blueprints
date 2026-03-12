@@ -1,52 +1,45 @@
 import React from 'react';
-import { 
-  FileCode, Package, Code2, Database, Layers, 
-  FolderTree, BarChart3, Zap, CheckCircle 
-} from 'lucide-react';
+import { Activity, FileCode, Package, Layers, GitBranch, Calendar } from 'lucide-react';
 
 const OverviewTab = ({ project, architecture, flows }) => {
   if (!architecture) {
     return (
-      <div className="empty-state">
-        <BarChart3 size={48} />
-        <p>Loading architecture overview...</p>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
+        <Activity size={40} />
+        <p style={{ marginTop: '16px' }}>Loading architecture overview...</p>
       </div>
     );
   }
 
-  const { directory, dependencies, techStack } = architecture;
-
-  // Quick stats
   const stats = [
     {
-      icon: <FileCode size={24} />,
       label: 'Total Files',
-      value: directory?.stats?.totalFiles || 0,
-      color: 'blue'
+      value: architecture.directory?.stats?.totalFiles || 0,
+      icon: <FileCode size={24} />,
+      color: '#00d9ff'
     },
     {
-      icon: <BarChart3 size={24} />,
-      label: 'Lines of Code',
-      value: (directory?.stats?.totalLines || 0).toLocaleString(),
-      color: 'green'
-    },
-    {
-      icon: <Package size={24} />,
       label: 'Dependencies',
-      value: dependencies?.totalCount || 0,
-      color: 'purple'
+      value: architecture.dependencies?.totalCount || 0,
+      icon: <Package size={24} />,
+      color: '#a29bfe'
     },
     {
-      icon: <Zap size={24} />,
       label: 'API Endpoints',
-      value: flows?.length || 0,
-      color: 'orange'
-    }
+      value: flows.length,
+      icon: <GitBranch size={24} />,
+      color: '#00b894'
+    },
+    {
+      label: 'Directories',
+      value: architecture.directory?.stats?.totalDirectories || 0,
+      icon: <Layers size={24} />,
+      color: '#ff9f43'
+    },
   ];
 
-  // Format file size
-  const formatSize = (bytes) => {
-    if (bytes === 0) return '0 B';
+  const formatBytes = (bytes) => {
+    if (!bytes) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -54,158 +47,118 @@ const OverviewTab = ({ project, architecture, flows }) => {
   };
 
   return (
-    <div className="overview-tab">
-      {/* Quick Stats */}
-      <div className="stats-grid">
+    <div style={{ padding: '24px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '32px' }}>
+        <h2 style={{ fontSize: '24px', marginBottom: '8px', color: '#fff' }}>Project Overview</h2>
+        <p style={{ color: 'rgba(255,255,255,0.6)' }}>
+          A comprehensive analysis of your project's architecture and structure
+        </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
         {stats.map((stat, index) => (
-          <div key={index} className={`stat-card stat-${stat.color}`}>
-            <div className="stat-icon">{stat.icon}</div>
-            <div className="stat-content">
-              <div className="stat-value">{stat.value}</div>
-              <div className="stat-label">{stat.label}</div>
+          <div
+            key={index}
+            style={{
+              background: 'rgba(26, 31, 53, 0.6)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(0, 217, 255, 0.1)',
+              borderRadius: '16px',
+              padding: '24px',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ color: stat.color }}>{stat.icon}</div>
+              <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {stat.label}
+              </div>
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: '700', color: '#fff' }}>
+              {stat.value.toLocaleString()}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="overview-grid">
-        {/* Tech Stack Summary */}
-        <div className="overview-section">
-          <h3>
-            <Code2 size={20} />
-            Technology Stack
-          </h3>
-          <div className="tech-badges">
-            {techStack?.frontend?.map((tech, i) => (
-              <span key={i} className="tech-badge frontend">
-                {tech.name}
-              </span>
-            ))}
-            {techStack?.backend?.map((tech, i) => (
-              <span key={i} className="tech-badge backend">
-                {tech.name}
-              </span>
-            ))}
-            {techStack?.database?.map((tech, i) => (
-              <span key={i} className="tech-badge database">
-                {tech.name}
-              </span>
-            ))}
-            {techStack?.buildTools?.map((tool, i) => (
-              <span key={i} className="tech-badge build">
-                {tool}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Languages */}
-        <div className="overview-section">
-          <h3>
-            <Layers size={20} />
-            Programming Languages
-          </h3>
-          <div className="language-list">
-            {techStack?.languages?.map((lang, i) => (
-              <div key={i} className="language-item">
-                <span className="language-name">{lang.name}</span>
-                <span className="language-count">{lang.files} files</span>
+      {/* Tech Stack Quick View */}
+      {architecture.techStack?.framework && (
+        <div style={{
+          background: 'rgba(26, 31, 53, 0.6)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(0, 217, 255, 0.1)',
+          borderRadius: '16px',
+          padding: '24px',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{ fontSize: '18px', marginBottom: '16px', color: '#fff' }}>Tech Stack</h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+            {architecture.techStack.framework && (
+              <div style={{
+                padding: '8px 16px',
+                background: 'rgba(0, 217, 255, 0.1)',
+                border: '1px solid rgba(0, 217, 255, 0.3)',
+                borderRadius: '8px',
+                color: '#00d9ff',
+                fontSize: '14px'
+              }}>
+                {architecture.techStack.framework.name}
+              </div>
+            )}
+            {architecture.techStack.language && (
+              <div style={{
+                padding: '8px 16px',
+                background: 'rgba(162, 155, 254, 0.1)',
+                border: '1px solid rgba(162, 155, 254, 0.3)',
+                borderRadius: '8px',
+                color: '#a29bfe',
+                fontSize: '14px'
+              }}>
+                {architecture.techStack.language}
+              </div>
+            )}
+            {architecture.techStack.database && architecture.techStack.database.map((db, i) => (
+              <div key={i} style={{
+                padding: '8px 16px',
+                background: 'rgba(0, 184, 148, 0.1)',
+                border: '1px solid rgba(0, 184, 148, 0.3)',
+                borderRadius: '8px',
+                color: '#00b894',
+                fontSize: '14px'
+              }}>
+                {db}
               </div>
             ))}
           </div>
         </div>
+      )}
 
-        {/* Entry Points */}
-        <div className="overview-section">
-          <h3>
-            <FolderTree size={20} />
-            Entry Points
-          </h3>
-          <div className="entry-points-list">
-            {directory?.entryPoints && directory.entryPoints.length > 0 ? (
-              directory.entryPoints.map((entry, i) => (
-                <div key={i} className="entry-point">
-                  <FileCode size={16} />
-                  <span className="entry-path">{entry.path}</span>
-                  <span className={`entry-type type-${entry.type}`}>
-                    {entry.type}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="empty-text">No entry points detected</p>
-            )}
+      {/* Project Info */}
+      <div style={{
+        background: 'rgba(26, 31, 53, 0.6)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(0, 217, 255, 0.1)',
+        borderRadius: '16px',
+        padding: '24px'
+      }}>
+        <h3 style={{ fontSize: '18px', marginBottom: '16px', color: '#fff' }}>Project Information</h3>
+        <div style={{ display: 'grid', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <span style={{ color: 'rgba(255,255,255,0.6)' }}>Total Size</span>
+            <span style={{ color: '#fff', fontWeight: '500' }}>{formatBytes(architecture.directory?.stats?.totalSize)}</span>
           </div>
-        </div>
-
-        {/* Project Info */}
-        <div className="overview-section">
-          <h3>
-            <CheckCircle size={20} />
-            Project Information
-          </h3>
-          <div className="info-list">
-            <div className="info-item">
-              <span className="info-label">Project Name</span>
-              <span className="info-value">{dependencies?.name || 'Unknown'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Version</span>
-              <span className="info-value">{dependencies?.version || 'N/A'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Total Size</span>
-              <span className="info-value">
-                {formatSize(directory?.stats?.totalSize || 0)}
-              </span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Description</span>
-              <span className="info-value">
-                {dependencies?.description || 'No description'}
-              </span>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <span style={{ color: 'rgba(255,255,255,0.6)' }}>Source Type</span>
+            <span style={{ color: '#fff', fontWeight: '500' }}>{project.source_type === 'github' ? 'GitHub Repository' : 'Uploaded ZIP'}</span>
           </div>
-        </div>
-
-        {/* File Type Breakdown */}
-        <div className="overview-section">
-          <h3>
-            <FileCode size={20} />
-            File Types
-          </h3>
-          <div className="file-types-list">
-            {directory?.stats?.filesByType && 
-             Object.entries(directory.stats.filesByType)
-               .sort((a, b) => b[1] - a[1])
-               .slice(0, 8)
-               .map(([ext, count], i) => (
-                 <div key={i} className="file-type-item">
-                   <span className="file-ext">{ext}</span>
-                   <span className="file-count">{count} files</span>
-                 </div>
-               ))}
-          </div>
-        </div>
-
-        {/* Frameworks Detected */}
-        <div className="overview-section">
-          <h3>
-            <Database size={20} />
-            Frameworks & Libraries
-          </h3>
-          <div className="frameworks-list">
-            {dependencies?.framework && dependencies.framework.length > 0 ? (
-              dependencies.framework.map((fw, i) => (
-                <div key={i} className="framework-item">
-                  <CheckCircle size={16} className="check-icon" />
-                  <span>{fw}</span>
-                </div>
-              ))
-            ) : (
-              <p className="empty-text">No frameworks detected</p>
-            )}
-          </div>
+          {project.uploaded_at && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
+              <span style={{ color: 'rgba(255,255,255,0.6)' }}>Analyzed On</span>
+              <span style={{ color: '#fff', fontWeight: '500' }}>{new Date(project.uploaded_at).toLocaleDateString()}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { projectAPI, flowAPI } from '../services/api';
+import { projectAPI, flowAPI, architectureAPI } from '../services/api';
 import { 
   Upload, ArrowLeft, FileCode, Zap, Layout, Package, 
-  Code2, BarChart3, Layers, Folder, FolderTree,
-  Database, Wrench, TestTube, Palette, Cloud
+  Code2, BarChart3, FolderTree, Activity
 } from 'lucide-react';
 import '../styles/Project.css';
 
@@ -37,6 +36,20 @@ const Project = () => {
     { id: 'stats', label: 'Statistics', icon: <BarChart3 size={18} /> },
   ];
 
+  useEffect(() => {
+    fetchProject();
+    fetchFlows();
+    // eslint-disable-next-line
+  }, [id]);
+
+  // Fetch architecture when needed
+  useEffect(() => {
+    if (project?.uploaded_at && !architecture && activeTab !== 'api-flow') {
+      fetchArchitecture();
+    }
+    // eslint-disable-next-line
+  }, [activeTab, project]);
+
   const fetchProject = async () => {
     try {
       const response = await projectAPI.getOne(id);
@@ -62,32 +75,14 @@ const Project = () => {
     
     setLoadingArchitecture(true);
     try {
-      const response = await fetch(`/api/architecture/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      const data = await response.json();
-      setArchitecture(data);
+      const response = await architectureAPI.getArchitecture(id);
+      setArchitecture(response.data);
     } catch (error) {
       console.error('Failed to fetch architecture:', error);
     } finally {
       setLoadingArchitecture(false);
     }
   };
-
-  useEffect(() => {
-    fetchProject();
-    fetchFlows();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  // Fetch architecture when needed
-  useEffect(() => {
-    if (project?.uploaded_at && !architecture && activeTab !== 'api-flow') {
-      fetchArchitecture();
-    }
-  }, [activeTab, project, architecture]);
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -105,6 +100,7 @@ const Project = () => {
       await projectAPI.analyzeGitHub(id);
       await fetchProject();
       await fetchFlows();
+      setArchitecture(null); // Reset to fetch fresh
       await fetchArchitecture();
     } catch (error) {
       console.error('Failed to analyze repository:', error);
@@ -127,6 +123,7 @@ const Project = () => {
       setSelectedFile(null);
       await fetchProject();
       await fetchFlows();
+      setArchitecture(null); // Reset to fetch fresh
       await fetchArchitecture();
     } catch (error) {
       console.error('Failed to upload file:', error);
@@ -144,7 +141,7 @@ const Project = () => {
     if (loadingArchitecture && activeTab !== 'api-flow') {
       return (
         <div className="loading-content">
-          <div className="spinner"></div>
+          <Activity size={48} className="spinner-icon" />
           <p>Analyzing project architecture...</p>
         </div>
       );
@@ -158,7 +155,7 @@ const Project = () => {
       case 'files':
         return <FilesTab projectId={id} architecture={architecture} />;
       case 'dependencies':
-        return <DependenciesTab projectId={id} architecture={architecture} />;
+        return <DependenciesTab architecture={architecture} />;
       case 'tech-stack':
         return <TechStackTab architecture={architecture} />;
       case 'stats':
@@ -171,7 +168,7 @@ const Project = () => {
   if (loading) {
     return (
       <div className="loading-page">
-        <div className="spinner"></div>
+        <Activity size={48} className="spinner-icon" />
         <p>Loading project...</p>
       </div>
     );
@@ -186,11 +183,11 @@ const Project = () => {
             Back
           </button>
           <div className="project-title">
-            <h1>📐 {project?.name}</h1>
+            <h1>{project?.name}</h1>
             <p className="project-subtitle">
               {project?.source_type === 'github' 
-                ? `${project.github_repo_name} • ${project.github_branch}` 
-                : project?.file_name || 'Uploaded project'}
+                ? `📦 ${project.github_repo_name} • ${project.github_branch}` 
+                : project?.file_name ? `📁 ${project.file_name}` : '📂 Uploaded project'}
             </p>
           </div>
         </div>
@@ -233,8 +230,8 @@ const Project = () => {
             <div className="upload-card">
               <Zap size={48} className="upload-icon" />
               <h2>Analyze GitHub Repository</h2>
-              <p>Repository: <strong>{project.github_repo_name}</strong></p>
-              <p>Branch: <strong>{project.github_branch}</strong></p>
+              <p className="repo-info">Repository: <strong>{project.github_repo_name}</strong></p>
+              <p className="repo-info">Branch: <strong>{project.github_branch}</strong></p>
               
               <button
                 className="btn-primary"

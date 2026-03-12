@@ -1,280 +1,232 @@
-const fs = require('fs-extra');
+const fs = require('fs').promises;
 const path = require('path');
 
-/**
- * Detect technology stack from project files
- */
 class TechStackDetector {
   constructor(projectPath) {
     this.projectPath = projectPath;
   }
 
-  /**
-   * Detect complete tech stack
-   */
   async detect() {
-    const packageJson = await this.readPackageJson();
-    const configFiles = await this.detectConfigFiles();
-    const fileExtensions = await this.analyzeFileExtensions();
-
-    return {
-      frontend: this.detectFrontend(packageJson, configFiles),
-      backend: this.detectBackend(packageJson, configFiles),
-      database: this.detectDatabase(packageJson),
-      languages: this.detectLanguages(fileExtensions, configFiles),
-      buildTools: this.detectBuildTools(packageJson, configFiles),
-      testing: this.detectTesting(packageJson),
-      styling: this.detectStyling(packageJson, configFiles, fileExtensions),
-      deployment: this.detectDeployment(configFiles)
-    };
-  }
-
-  /**
-   * Read package.json
-   */
-  async readPackageJson() {
     try {
-      const packagePath = path.join(this.projectPath, 'package.json');
-      if (await fs.pathExists(packagePath)) {
-        return JSON.parse(await fs.readFile(packagePath, 'utf-8'));
-      }
+      const detections = await Promise.all([
+        this.detectFromPackageJson(),
+        this.detectFromFiles(),
+        this.detectFromConfig(),
+      ]);
+
+      const [packageJsonTech, fileTech, configTech] = detections;
+      
+      return {
+        framework: this.detectFramework(packageJsonTech),
+        language: this.detectLanguage(fileTech),
+        buildTool: this.detectBuildTool(packageJsonTech, configTech),
+        database: this.detectDatabase(packageJsonTech),
+        testing: this.detectTesting(packageJsonTech),
+        styling: this.detectStyling(packageJsonTech, fileTech),
+        stateManagement: this.detectStateManagement(packageJsonTech),
+        deployment: this.detectDeployment(configTech),
+        other: this.detectOther(packageJsonTech, configTech),
+      };
     } catch (error) {
-      console.error('Error reading package.json:', error);
+      console.error('Tech stack detection error:', error);
+      return {};
     }
-    return null;
   }
 
-  /**
-   * Detect configuration files
-   */
-  async detectConfigFiles() {
+  async detectFromPackageJson() {
+    try {
+      const content = await fs.readFile(path.join(this.projectPath, 'package.json'), 'utf-8');
+      const packageJson = JSON.parse(content);
+      return {
+        ...packageJson.dependencies,
+        ...packageJson.devDependencies,
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  async detectFromFiles() {
+    const extensions = {
+      '.ts': 'TypeScript',
+      '.tsx': 'TypeScript',
+      '.js': 'JavaScript',
+      '.jsx': 'JavaScript',
+      '.py': 'Python',
+      '.java': 'Java',
+      '.go': 'Go',
+      '.rs': 'Rust',
+      '.php': 'PHP',
+      '.rb': 'Ruby',
+    };
+
+    const counts = {};
+
+    try {
+      await this.countFileExtensions(this.projectPath, extensions, counts);
+    } catch {
+      // Ignore errors
+    }
+
+    return counts;
+  }
+
+  async countFileExtensions(dir, extensions, counts, depth = 0) {
+    if (depth > 3) return;
+
+    try {
+      const entries = await fs.readdir(dir);
+      
+      for (const entry of entries) {
+        if (this.shouldSkip(entry)) continue;
+        
+        const fullPath = path.join(dir, entry);
+        const stats = await fs.stat(fullPath);
+        
+        if (stats.isDirectory()) {
+          await this.countFileExtensions(fullPath, extensions, counts, depth + 1);
+        } else {
+          const ext = path.extname(entry);
+          if (extensions[ext]) {
+            counts[ext] = (counts[ext] || 0) + 1;
+          }
+        }
+      }
+    } catch {
+      // Ignore errors
+    }
+  }
+
+  async detectFromConfig() {
     const configFiles = [
-      // Build tools
-      'webpack.config.js', 'vite.config.js', 'rollup.config.js',
-      // Frameworks
-      'next.config.js', 'nuxt.config.js', 'svelte.config.js', 'gatsby-config.js',
-      // TypeScript
+      'next.config.js',
+      'vite.config.js',
+      'webpack.config.js',
       'tsconfig.json',
-      // Testing
-      'jest.config.js', 'vitest.config.js', 'cypress.json',
-      // Linting
-      '.eslintrc', '.eslintrc.js', '.eslintrc.json', '.prettierrc',
-      // Styling
-      'tailwind.config.js', 'postcss.config.js',
-      // Deployment
-      'Dockerfile', 'docker-compose.yml', 'vercel.json', 'netlify.toml',
-      // Database
-      'prisma/schema.prisma', 'knexfile.js'
+      'Dockerfile',
+      '.gitlab-ci.yml',
+      '.github/workflows',
+      'vercel.json',
+      'railway.json',
     ];
 
-    const found = [];
+    const found = {};
 
     for (const file of configFiles) {
-      const filePath = path.join(this.projectPath, file);
-      if (await fs.pathExists(filePath)) {
-        found.push(file);
+      try {
+        await fs.access(path.join(this.projectPath, file));
+        found[file] = true;
+      } catch {
+        // File doesn't exist
       }
     }
 
     return found;
   }
 
-  /**
-   * Analyze file extensions in project
-   */
-  async analyzeFileExtensions() {
-    const extensions = {};
-
-    const traverse = async (dir) => {
-      try {
-        const items = await fs.readdir(dir);
-
-        for (const item of items) {
-          if (item === 'node_modules' || item === '.git') continue;
-
-          const fullPath = path.join(dir, item);
-          const stat = await fs.stat(fullPath);
-
-          if (stat.isDirectory()) {
-            await traverse(fullPath);
-          } else {
-            const ext = path.extname(item);
-            if (ext) {
-              extensions[ext] = (extensions[ext] || 0) + 1;
-            }
-          }
-        }
-      } catch (error) {
-        // Skip inaccessible directories
-      }
-    };
-
-    await traverse(this.projectPath);
-    return extensions;
+  detectFramework(deps) {
+    if (deps.react) return { name: 'React', version: deps.react };
+    if (deps.next) return { name: 'Next.js', version: deps.next };
+    if (deps.vue) return { name: 'Vue', version: deps.vue };
+    if (deps.nuxt) return { name: 'Nuxt', version: deps.nuxt };
+    if (deps['@angular/core']) return { name: 'Angular', version: deps['@angular/core'] };
+    if (deps.svelte) return { name: 'Svelte', version: deps.svelte };
+    if (deps.express) return { name: 'Express', version: deps.express };
+    if (deps['@nestjs/core']) return { name: 'NestJS', version: deps['@nestjs/core'] };
+    if (deps.fastify) return { name: 'Fastify', version: deps.fastify };
+    return null;
   }
 
-  /**
-   * Detect frontend framework
-   */
-  detectFrontend(packageJson, configFiles) {
-    const frontend = [];
-
-    if (!packageJson) return frontend;
-
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-
-    if (deps.react) frontend.push({ name: 'React', version: deps.react });
-    if (deps.next) frontend.push({ name: 'Next.js', version: deps.next });
-    if (deps.vue) frontend.push({ name: 'Vue', version: deps.vue });
-    if (deps.nuxt) frontend.push({ name: 'Nuxt', version: deps.nuxt });
-    if (deps['@angular/core']) frontend.push({ name: 'Angular', version: deps['@angular/core'] });
-    if (deps.svelte) frontend.push({ name: 'Svelte', version: deps.svelte });
-    if (deps.gatsby) frontend.push({ name: 'Gatsby', version: deps.gatsby });
-
-    return frontend;
+  detectLanguage(fileCounts) {
+    const tsCount = (fileCounts['.ts'] || 0) + (fileCounts['.tsx'] || 0);
+    const jsCount = (fileCounts['.js'] || 0) + (fileCounts['.jsx'] || 0);
+    
+    if (tsCount > jsCount) return 'TypeScript';
+    if (jsCount > 0) return 'JavaScript';
+    if (fileCounts['.py']) return 'Python';
+    if (fileCounts['.java']) return 'Java';
+    if (fileCounts['.go']) return 'Go';
+    return 'Unknown';
   }
 
-  /**
-   * Detect backend framework
-   */
-  detectBackend(packageJson, configFiles) {
-    const backend = [];
-
-    if (!packageJson) return backend;
-
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-
-    if (deps.express) backend.push({ name: 'Express', version: deps.express });
-    if (deps.fastify) backend.push({ name: 'Fastify', version: deps.fastify });
-    if (deps.koa) backend.push({ name: 'Koa', version: deps.koa });
-    if (deps['@nestjs/core']) backend.push({ name: 'NestJS', version: deps['@nestjs/core'] });
-
-    return backend;
+  detectBuildTool(deps, config) {
+    if (config['vite.config.js']) return 'Vite';
+    if (config['next.config.js']) return 'Next.js';
+    if (config['webpack.config.js']) return 'Webpack';
+    if (deps.vite) return 'Vite';
+    if (deps.webpack) return 'Webpack';
+    if (deps.rollup) return 'Rollup';
+    if (deps.esbuild) return 'esbuild';
+    if (deps.parcel) return 'Parcel';
+    return null;
   }
 
-  /**
-   * Detect database
-   */
-  detectDatabase(packageJson) {
+  detectDatabase(deps) {
     const databases = [];
-
-    if (!packageJson) return databases;
-
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-
-    if (deps.mongoose) databases.push({ name: 'MongoDB (Mongoose)', version: deps.mongoose });
-    if (deps.mongodb) databases.push({ name: 'MongoDB', version: deps.mongodb });
-    if (deps.pg) databases.push({ name: 'PostgreSQL', version: deps.pg });
-    if (deps.mysql || deps.mysql2) databases.push({ name: 'MySQL', version: deps.mysql || deps.mysql2 });
-    if (deps.sequelize) databases.push({ name: 'Sequelize ORM', version: deps.sequelize });
-    if (deps.typeorm) databases.push({ name: 'TypeORM', version: deps.typeorm });
-    if (deps.prisma) databases.push({ name: 'Prisma', version: deps.prisma });
-    if (deps.redis) databases.push({ name: 'Redis', version: deps.redis });
-
-    return databases;
+    if (deps.mongodb || deps.mongoose) databases.push('MongoDB');
+    if (deps.pg) databases.push('PostgreSQL');
+    if (deps.mysql || deps.mysql2) databases.push('MySQL');
+    if (deps.sqlite3) databases.push('SQLite');
+    if (deps.redis) databases.push('Redis');
+    if (deps.prisma) databases.push('Prisma');
+    if (deps.typeorm) databases.push('TypeORM');
+    if (deps.sequelize) databases.push('Sequelize');
+    return databases.length > 0 ? databases : null;
   }
 
-  /**
-   * Detect programming languages
-   */
-  detectLanguages(extensions, configFiles) {
-    const languages = [];
-
-    if (extensions['.js'] || extensions['.jsx']) {
-      languages.push({ name: 'JavaScript', files: (extensions['.js'] || 0) + (extensions['.jsx'] || 0) });
-    }
-    if (extensions['.ts'] || extensions['.tsx'] || configFiles.includes('tsconfig.json')) {
-      languages.push({ name: 'TypeScript', files: (extensions['.ts'] || 0) + (extensions['.tsx'] || 0) });
-    }
-    if (extensions['.py']) languages.push({ name: 'Python', files: extensions['.py'] });
-    if (extensions['.java']) languages.push({ name: 'Java', files: extensions['.java'] });
-    if (extensions['.go']) languages.push({ name: 'Go', files: extensions['.go'] });
-    if (extensions['.css']) languages.push({ name: 'CSS', files: extensions['.css'] });
-    if (extensions['.scss'] || extensions['.sass']) {
-      languages.push({ name: 'SASS/SCSS', files: (extensions['.scss'] || 0) + (extensions['.sass'] || 0) });
-    }
-    if (extensions['.html']) languages.push({ name: 'HTML', files: extensions['.html'] });
-
-    return languages;
-  }
-
-  /**
-   * Detect build tools
-   */
-  detectBuildTools(packageJson, configFiles) {
-    const tools = [];
-
-    if (configFiles.includes('webpack.config.js')) tools.push('Webpack');
-    if (configFiles.includes('vite.config.js')) tools.push('Vite');
-    if (configFiles.includes('rollup.config.js')) tools.push('Rollup');
-
-    if (packageJson) {
-      const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-      if (deps.parcel) tools.push('Parcel');
-      if (deps.esbuild) tools.push('ESBuild');
-      if (deps['@babel/core']) tools.push('Babel');
-    }
-
-    return tools;
-  }
-
-  /**
-   * Detect testing frameworks
-   */
-  detectTesting(packageJson) {
+  detectTesting(deps) {
     const testing = [];
-
-    if (!packageJson) return testing;
-
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-
     if (deps.jest) testing.push('Jest');
     if (deps.vitest) testing.push('Vitest');
     if (deps.mocha) testing.push('Mocha');
     if (deps.cypress) testing.push('Cypress');
     if (deps.playwright) testing.push('Playwright');
     if (deps['@testing-library/react']) testing.push('React Testing Library');
-
-    return testing;
+    return testing.length > 0 ? testing : null;
   }
 
-  /**
-   * Detect styling approach
-   */
-  detectStyling(packageJson, configFiles, extensions) {
+  detectStyling(deps, fileCounts) {
     const styling = [];
-
-    if (configFiles.includes('tailwind.config.js')) styling.push('Tailwind CSS');
-    
-    if (packageJson) {
-      const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-      
-      if (deps['styled-components']) styling.push('Styled Components');
-      if (deps['@emotion/react']) styling.push('Emotion');
-      if (deps.sass) styling.push('SASS');
-      if (deps.less) styling.push('LESS');
-      if (deps['@mui/material']) styling.push('Material-UI');
-      if (deps.antd) styling.push('Ant Design');
-      if (deps.bootstrap) styling.push('Bootstrap');
-    }
-
-    if (extensions['.css'] && styling.length === 0) styling.push('Plain CSS');
-
-    return styling;
+    if (deps['styled-components']) styling.push('Styled Components');
+    if (deps['@emotion/react']) styling.push('Emotion');
+    if (deps.tailwindcss) styling.push('Tailwind CSS');
+    if (deps.sass || deps['node-sass']) styling.push('Sass');
+    if (deps.less) styling.push('Less');
+    if (fileCounts['.css']) styling.push('CSS');
+    return styling.length > 0 ? styling : null;
   }
 
-  /**
-   * Detect deployment platform
-   */
-  detectDeployment(configFiles) {
-    const deployment = [];
+  detectStateManagement(deps) {
+    if (deps.redux) return 'Redux';
+    if (deps.mobx) return 'MobX';
+    if (deps.zustand) return 'Zustand';
+    if (deps.jotai) return 'Jotai';
+    if (deps.recoil) return 'Recoil';
+    return null;
+  }
 
-    if (configFiles.includes('vercel.json')) deployment.push('Vercel');
-    if (configFiles.includes('netlify.toml')) deployment.push('Netlify');
-    if (configFiles.includes('Dockerfile')) deployment.push('Docker');
-    if (configFiles.includes('docker-compose.yml')) deployment.push('Docker Compose');
+  detectDeployment(config) {
+    if (config['vercel.json']) return 'Vercel';
+    if (config['railway.json']) return 'Railway';
+    if (config['Dockerfile']) return 'Docker';
+    if (config['.github/workflows']) return 'GitHub Actions';
+    if (config['.gitlab-ci.yml']) return 'GitLab CI';
+    return null;
+  }
 
-    return deployment;
+  detectOther(deps, config) {
+    const other = [];
+    if (deps.axios) other.push('Axios');
+    if (deps.graphql) other.push('GraphQL');
+    if (deps['@apollo/client']) other.push('Apollo Client');
+    if (deps['react-query']) other.push('React Query');
+    if (deps.passport) other.push('Passport.js');
+    if (config['tsconfig.json']) other.push('TypeScript Config');
+    return other.length > 0 ? other : null;
+  }
+
+  shouldSkip(name) {
+    return ['node_modules', '.git', 'dist', 'build', '.next'].includes(name) || name.startsWith('.');
   }
 }
 

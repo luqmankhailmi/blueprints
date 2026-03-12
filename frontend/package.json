@@ -1,7 +1,7 @@
 {
-  "name": "blueprints-frontend",
+  "name": "flow-tracker-frontend",
   "version": "1.0.0",
-  "description": "Blueprints - System Architecture Analyzer Frontend",
+  "description": "Flow Tracker Frontend",
   "private": true,
   "scripts": {
     "start": "react-scripts start",

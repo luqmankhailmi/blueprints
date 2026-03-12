@@ -1,233 +1,113 @@
-const fs = require('fs-extra');
+const fs = require('fs').promises;
 const path = require('path');
 
-/**
- * Analyze project dependencies from package.json
- */
 class DependencyAnalyzer {
   constructor(projectPath) {
     this.projectPath = projectPath;
   }
 
-  /**
-   * Analyze all dependencies
-   */
   async analyze() {
-    const packageJson = await this.readPackageJson();
-    
-    if (!packageJson) {
-      return {
-        error: 'No package.json found',
-        hasDependencies: false
-      };
-    }
-
-    const dependencies = this.extractDependencies(packageJson);
-    const devDependencies = this.extractDevDependencies(packageJson);
-    const allDeps = [...dependencies, ...devDependencies];
-
-    return {
-      name: packageJson.name,
-      version: packageJson.version,
-      description: packageJson.description,
-      scripts: packageJson.scripts || {},
-      dependencies,
-      devDependencies,
-      totalCount: allDeps.length,
-      dependencyCount: dependencies.length,
-      devDependencyCount: devDependencies.length,
-      framework: this.detectFramework(allDeps),
-      categories: this.categorizeDependencies(allDeps)
-    };
-  }
-
-  /**
-   * Read package.json file
-   */
-  async readPackageJson() {
     try {
-      const packagePath = path.join(this.projectPath, 'package.json');
-      const exists = await fs.pathExists(packagePath);
+      const packageJsonPath = path.join(this.projectPath, 'package.json');
       
-      if (!exists) {
-        return null;
+      try {
+        const content = await fs.readFile(packageJsonPath, 'utf-8');
+        const packageJson = JSON.parse(content);
+        
+        const dependencies = packageJson.dependencies || {};
+        const devDependencies = packageJson.devDependencies || {};
+        const peerDependencies = packageJson.peerDependencies || {};
+        
+        return {
+          dependencies: this.categorizeDependencies(dependencies),
+          devDependencies: this.categorizeDependencies(devDependencies),
+          peerDependencies: this.categorizeDependencies(peerDependencies),
+          totalCount: Object.keys(dependencies).length + Object.keys(devDependencies).length + Object.keys(peerDependencies).length,
+          dependencyCount: Object.keys(dependencies).length,
+          devDependencyCount: Object.keys(devDependencies).length,
+          peerDependencyCount: Object.keys(peerDependencies).length,
+          categories: this.getCategoryCounts(dependencies, devDependencies),
+          scripts: packageJson.scripts || {},
+          packageInfo: {
+            name: packageJson.name,
+            version: packageJson.version,
+            description: packageJson.description,
+            license: packageJson.license,
+          },
+        };
+      } catch (error) {
+        // No package.json found
+        return {
+          dependencies: {},
+          devDependencies: {},
+          peerDependencies: {},
+          totalCount: 0,
+          dependencyCount: 0,
+          devDependencyCount: 0,
+          peerDependencyCount: 0,
+          categories: {},
+          scripts: {},
+          packageInfo: null,
+          error: 'No package.json found',
+        };
       }
-
-      const content = await fs.readFile(packagePath, 'utf-8');
-      return JSON.parse(content);
     } catch (error) {
-      console.error('Error reading package.json:', error);
-      return null;
+      console.error('Dependency analysis error:', error);
+      throw error;
     }
   }
 
-  /**
-   * Extract dependencies with versions
-   */
-  extractDependencies(packageJson) {
-    if (!packageJson.dependencies) return [];
-
-    return Object.entries(packageJson.dependencies).map(([name, version]) => ({
-      name,
-      version,
-      type: 'dependency',
-      category: this.categorizePackage(name)
-    }));
-  }
-
-  /**
-   * Extract dev dependencies with versions
-   */
-  extractDevDependencies(packageJson) {
-    if (!packageJson.devDependencies) return [];
-
-    return Object.entries(packageJson.devDependencies).map(([name, version]) => ({
-      name,
-      version,
-      type: 'devDependency',
-      category: this.categorizePackage(name)
-    }));
-  }
-
-  /**
-   * Detect primary framework
-   */
-  detectFramework(dependencies) {
-    const frameworks = [];
-
-    const frameworkMap = {
-      'react': 'React',
-      'next': 'Next.js',
-      'vue': 'Vue.js',
-      'nuxt': 'Nuxt.js',
-      'angular': 'Angular',
-      'svelte': 'Svelte',
-      'express': 'Express.js',
-      'fastify': 'Fastify',
-      'koa': 'Koa',
-      'nestjs': 'NestJS',
-      '@nestjs/core': 'NestJS',
-      'gatsby': 'Gatsby',
-      'remix': 'Remix'
-    };
-
-    dependencies.forEach(dep => {
-      for (const [key, framework] of Object.entries(frameworkMap)) {
-        if (dep.name.includes(key)) {
-          if (!frameworks.includes(framework)) {
-            frameworks.push(framework);
-          }
-        }
+  categorizeDependencies(deps) {
+    const categorized = {};
+    
+    for (const [name, version] of Object.entries(deps)) {
+      const category = this.categorize(name);
+      
+      if (!categorized[category]) {
+        categorized[category] = [];
       }
-    });
-
-    return frameworks;
+      
+      categorized[category].push({ name, version });
+    }
+    
+    return categorized;
   }
 
-  /**
-   * Categorize a package by its purpose
-   */
-  categorizePackage(packageName) {
+  categorize(packageName) {
     const categories = {
-      'UI/Components': ['react', 'vue', 'angular', 'svelte', 'preact', '@mui/', 'antd', 'bootstrap', 'tailwind'],
-      'Framework': ['next', 'nuxt', 'gatsby', 'remix', 'express', 'fastify', 'koa', '@nestjs/'],
-      'Database': ['mongoose', 'sequelize', 'typeorm', 'prisma', 'pg', 'mysql', 'mongodb', 'redis'],
-      'Testing': ['jest', 'mocha', 'chai', 'vitest', 'cypress', '@testing-library/', 'playwright'],
-      'Build Tools': ['webpack', 'vite', 'rollup', 'parcel', 'esbuild', 'babel', '@babel/'],
-      'Linting/Formatting': ['eslint', 'prettier', 'stylelint', '@typescript-eslint/'],
-      'State Management': ['redux', 'zustand', 'mobx', 'recoil', 'jotai', 'pinia', 'vuex'],
-      'Routing': ['react-router', 'vue-router', '@angular/router'],
-      'HTTP/API': ['axios', 'fetch', 'got', 'node-fetch', 'superagent'],
-      'Authentication': ['passport', 'jsonwebtoken', 'bcrypt', 'auth0', 'next-auth'],
-      'Utilities': ['lodash', 'moment', 'dayjs', 'uuid', 'dotenv'],
-      'CSS/Styling': ['styled-components', 'emotion', 'sass', 'less', 'postcss']
+      'UI Framework': ['react', 'vue', 'angular', 'svelte', 'preact'],
+      'Backend': ['express', 'fastify', 'koa', 'hapi', 'nest'],
+      'Database': ['mongodb', 'mongoose', 'pg', 'mysql', 'sqlite', 'redis', 'sequelize', 'typeorm', 'prisma'],
+      'State Management': ['redux', 'mobx', 'zustand', 'jotai', 'recoil', 'valtio'],
+      'Testing': ['jest', 'mocha', 'chai', 'cypress', 'playwright', 'vitest', 'testing-library'],
+      'Build Tools': ['webpack', 'vite', 'rollup', 'esbuild', 'parcel', 'turbopack'],
+      'Styling': ['styled-components', 'emotion', 'tailwind', 'sass', 'less', 'postcss'],
+      'TypeScript': ['typescript', '@types/'],
+      'Linting': ['eslint', 'prettier', 'stylelint'],
+      'Authentication': ['passport', 'next-auth', 'auth0', 'firebase', 'supabase'],
+      'API': ['axios', 'fetch', 'graphql', 'apollo', 'trpc', 'react-query', 'swr'],
+      'Utilities': ['lodash', 'ramda', 'date-fns', 'moment', 'dayjs'],
     };
-
-    for (const [category, keywords] of Object.entries(categories)) {
-      if (keywords.some(keyword => packageName.includes(keyword))) {
+    
+    for (const [category, packages] of Object.entries(categories)) {
+      if (packages.some(pkg => packageName.toLowerCase().includes(pkg))) {
         return category;
       }
     }
-
+    
     return 'Other';
   }
 
-  /**
-   * Categorize all dependencies
-   */
-  categorizeDependencies(dependencies) {
-    const categories = {};
-
-    dependencies.forEach(dep => {
-      const category = dep.category;
-      if (!categories[category]) {
-        categories[category] = [];
-      }
-      categories[category].push(dep);
-    });
-
-    // Sort categories by count
-    return Object.entries(categories)
-      .map(([name, deps]) => ({
-        name,
-        count: deps.length,
-        packages: deps
-      }))
-      .sort((a, b) => b.count - a.count);
-  }
-
-  /**
-   * Build dependency graph (simple version)
-   */
-  async buildDependencyGraph() {
-    const packageJson = await this.readPackageJson();
+  getCategoryCounts(dependencies, devDependencies) {
+    const allDeps = { ...dependencies, ...devDependencies };
+    const counts = {};
     
-    if (!packageJson) {
-      return { nodes: [], edges: [] };
+    for (const name of Object.keys(allDeps)) {
+      const category = this.categorize(name);
+      counts[category] = (counts[category] || 0) + 1;
     }
-
-    const nodes = [];
-    const edges = [];
-
-    // Add main package as root node
-    nodes.push({
-      id: packageJson.name || 'root',
-      label: packageJson.name || 'Project Root',
-      type: 'root'
-    });
-
-    // Add dependencies as nodes
-    if (packageJson.dependencies) {
-      Object.keys(packageJson.dependencies).forEach(dep => {
-        nodes.push({
-          id: dep,
-          label: dep,
-          type: 'dependency'
-        });
-        edges.push({
-          from: packageJson.name || 'root',
-          to: dep
-        });
-      });
-    }
-
-    // Add dev dependencies
-    if (packageJson.devDependencies) {
-      Object.keys(packageJson.devDependencies).forEach(dep => {
-        nodes.push({
-          id: dep,
-          label: dep,
-          type: 'devDependency'
-        });
-        edges.push({
-          from: packageJson.name || 'root',
-          to: dep,
-          style: 'dashed'
-        });
-      });
-    }
-
-    return { nodes, edges };
+    
+    return counts;
   }
 }
 
