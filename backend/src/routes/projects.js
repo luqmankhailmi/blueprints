@@ -10,6 +10,10 @@ const {
   deleteProject,
   analyzeGitHubRepo
 } = require('../controllers/projectController');
+const {
+  executeAIAnalysis,
+  getAIAnalysisStatus
+} = require('../controllers/aiAnalysisController');
 
 const router = express.Router();
 
@@ -48,5 +52,9 @@ router.get('/:id', getProject);
 router.post('/:id/upload', upload.single('file'), uploadProjectFile);
 router.post('/:id/analyze-github', analyzeGitHubRepo);
 router.delete('/:id', deleteProject);
+
+// AI Analysis routes
+router.post('/:id/ai-analyze', executeAIAnalysis);
+router.get('/:id/ai-status', getAIAnalysisStatus);
 
 module.exports = router;

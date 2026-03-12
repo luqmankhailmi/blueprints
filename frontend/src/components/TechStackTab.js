@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import {
-  Code2,
-  Database,
-  TestTube,
-  Server,
-  Layers,
+import { 
+  Code2, 
+  Database, 
+  TestTube, 
+  Server, 
+  Layers, 
   Palette,
   Package,
   Route,
@@ -16,7 +16,9 @@ import {
   Monitor,
   Gauge,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Sparkles,
+  Brain
 } from 'lucide-react';
 
 const TechStackTab = ({ architecture }) => {
@@ -38,12 +40,67 @@ const TechStackTab = ({ architecture }) => {
   }
 
   const tech = architecture.techStack;
+  const isAIEnhanced = tech.aiEnhanced === true;
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section]
     }));
+  };
+
+  const getConfidenceBadge = (confidence) => {
+    if (!confidence) return null;
+    
+    const colors = {
+      high: '#00b894',
+      medium: '#fdcb6e',
+      low: '#ff7675'
+    };
+
+    return (
+      <span style={{
+        fontSize: '10px',
+        padding: '2px 6px',
+        background: `${colors[confidence]}20`,
+        border: `1px solid ${colors[confidence]}40`,
+        borderRadius: '4px',
+        color: colors[confidence],
+        marginLeft: '4px',
+        textTransform: 'uppercase',
+        fontWeight: '600'
+      }}>
+        {confidence}
+      </span>
+    );
+  };
+
+  const getSourceBadge = (source) => {
+    if (!source) return null;
+
+    const badges = {
+      ai: { label: 'AI', color: '#a29bfe', icon: '🤖' },
+      basic: { label: 'Basic', color: '#74b9ff', icon: '📋' },
+      both: { label: 'Verified', color: '#00b894', icon: '✓' }
+    };
+
+    const badge = badges[source];
+    if (!badge) return null;
+
+    return (
+      <span style={{
+        fontSize: '9px',
+        padding: '2px 5px',
+        background: `${badge.color}15`,
+        border: `1px solid ${badge.color}30`,
+        borderRadius: '3px',
+        color: badge.color,
+        marginLeft: '4px',
+        fontWeight: '600'
+      }} title={`Detected by ${source === 'both' ? 'both AI and basic analysis' : source + ' analysis'}`}>
+        {badge.icon} {badge.label}
+      </span>
+    );
   };
 
   const renderTechItem = (item, color) => (
@@ -59,20 +116,20 @@ const TechStackTab = ({ architecture }) => {
         display: 'flex',
         alignItems: 'center',
         gap: '6px',
+        flexWrap: 'wrap'
       }}
     >
-      {item.name}
+      <span>{item.name || item}</span>
       {item.version && (
         <span style={{ opacity: 0.6, fontSize: '11px', fontWeight: '400' }}>
           {item.version}
         </span>
       )}
       {item.type && (
-        <span style={{
-          opacity: 0.5,
-          fontSize: '10px',
+        <span style={{ 
+          opacity: 0.5, 
+          fontSize: '10px', 
           fontWeight: '400',
-          marginLeft: '4px',
           padding: '2px 6px',
           background: 'rgba(255,255,255,0.1)',
           borderRadius: '4px'
@@ -81,11 +138,10 @@ const TechStackTab = ({ architecture }) => {
         </span>
       )}
       {item.category && (
-        <span style={{
-          opacity: 0.5,
-          fontSize: '10px',
+        <span style={{ 
+          opacity: 0.5, 
+          fontSize: '10px', 
           fontWeight: '400',
-          marginLeft: '4px',
           padding: '2px 6px',
           background: 'rgba(255,255,255,0.1)',
           borderRadius: '4px'
@@ -93,10 +149,12 @@ const TechStackTab = ({ architecture }) => {
           {item.category}
         </span>
       )}
+      {isAIEnhanced && item.confidence && getConfidenceBadge(item.confidence)}
+      {isAIEnhanced && item.source && getSourceBadge(item.source)}
     </div>
   );
 
-  const renderSubSection = (title, items, icon, color, emptyMessage = 'None detected') => {
+  const renderSubSection = (title, items, icon, color) => {
     if (!items || (Array.isArray(items) && items.length === 0)) {
       return null;
     }
@@ -105,10 +163,10 @@ const TechStackTab = ({ architecture }) => {
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
           <div style={{ color: color }}>{icon}</div>
-          <h4 style={{
-            fontSize: '13px',
-            color: 'rgba(255,255,255,0.7)',
-            textTransform: 'uppercase',
+          <h4 style={{ 
+            fontSize: '13px', 
+            color: 'rgba(255,255,255,0.7)', 
+            textTransform: 'uppercase', 
             letterSpacing: '0.5px',
             fontWeight: '600'
           }}>
@@ -132,7 +190,7 @@ const TechStackTab = ({ architecture }) => {
 
   const renderMainSection = (title, icon, color, sectionKey, content) => {
     const isExpanded = expandedSections[sectionKey];
-    const hasContent = content && Object.values(content).some(val =>
+    const hasContent = content && Object.values(content).some(val => 
       (Array.isArray(val) && val.length > 0) || (val && !Array.isArray(val))
     );
 
@@ -280,12 +338,31 @@ const TechStackTab = ({ architecture }) => {
   return (
     <div style={{ padding: '24px' }}>
       <div style={{ marginBottom: '28px' }}>
-        <h2 style={{ fontSize: '28px', marginBottom: '8px', color: '#fff', fontWeight: '700' }}>
-          Tech Stack Analysis
-        </h2>
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
-          Comprehensive breakdown of detected technologies across your codebase
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h2 style={{ fontSize: '28px', marginBottom: '8px', color: '#fff', fontWeight: '700' }}>
+              Tech Stack Analysis
+            </h2>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
+              Comprehensive breakdown of detected technologies across your codebase
+            </p>
+          </div>
+          
+          {isAIEnhanced && (
+            <div style={{
+              padding: '10px 18px',
+              background: 'linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%)',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 12px rgba(162, 155, 254, 0.4)'
+            }}>
+              <Brain size={18} style={{ color: '#fff' }} />
+              <span style={{ color: '#fff', fontSize: '13px', fontWeight: '600' }}>AI Enhanced</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {renderMainSection('Frontend', <Monitor size={24} />, '#00d9ff', 'frontend', frontendContent)}
@@ -294,10 +371,59 @@ const TechStackTab = ({ architecture }) => {
       {renderMainSection('DevOps & Deployment', <Cloud size={24} />, '#74b9ff', 'devOps', devOpsContent)}
       {renderMainSection('Testing', <TestTube size={24} />, '#667eea', 'testing', testingContent)}
 
-      {(!tech.frontend && !tech.backend && !tech.database && !tech.devOps && !tech.testing) && (
+      {/* AI Insights Section */}
+      {isAIEnhanced && tech.insights && (
         <div style={{
-          padding: '60px',
-          textAlign: 'center',
+          background: 'rgba(162, 155, 254, 0.1)',
+          border: '1px solid rgba(162, 155, 254, 0.3)',
+          borderRadius: '16px',
+          padding: '24px',
+          marginTop: '16px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+            <Sparkles size={20} style={{ color: '#a29bfe' }} />
+            <h3 style={{ fontSize: '18px', color: '#a29bfe', fontWeight: '600', margin: 0 }}>
+              AI Insights
+            </h3>
+          </div>
+
+          {tech.insights.architecture && (
+            <div style={{ marginBottom: '16px' }}>
+              <strong style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Architecture Pattern:</strong>
+              <p style={{ fontSize: '14px', color: '#fff', marginTop: '6px', lineHeight: '1.6' }}>
+                {tech.insights.architecture}
+              </p>
+            </div>
+          )}
+
+          {tech.insights.patterns && tech.insights.patterns.length > 0 && (
+            <div style={{ marginBottom: '16px' }}>
+              <strong style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Detected Patterns:</strong>
+              <ul style={{ fontSize: '14px', color: '#fff', marginTop: '6px', paddingLeft: '20px', lineHeight: '1.8' }}>
+                {tech.insights.patterns.map((pattern, i) => (
+                  <li key={i}>{pattern}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {tech.insights.recommendations && tech.insights.recommendations.length > 0 && (
+            <div>
+              <strong style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Recommendations:</strong>
+              <ul style={{ fontSize: '14px', color: '#fff', marginTop: '6px', paddingLeft: '20px', lineHeight: '1.8' }}>
+                {tech.insights.recommendations.map((rec, i) => (
+                  <li key={i}>{rec}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {(!tech.frontend && !tech.backend && !tech.database && !tech.devOps && !tech.testing) && (
+        <div style={{ 
+          padding: '60px', 
+          textAlign: 'center', 
           color: 'rgba(255,255,255,0.4)',
           background: 'rgba(26, 31, 53, 0.3)',
           borderRadius: '16px',
