@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
 const flowRoutes = require('./routes/flows');
 const githubRoutes = require('./routes/github');
+const architectureRoutes = require('./routes/architecture');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,12 +34,13 @@ app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/flows', flowRoutes);
 app.use('/api/github', githubRoutes);
+app.use('/api/architecture', architectureRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'Flow Tracker API is running',
+    message: 'Blueprints API is running',
     environment: process.env.NODE_ENV || 'development'
   });
 });

@@ -1,7 +1,7 @@
 {
-  "name": "flow-tracker-backend",
+  "name": "blueprints-backend",
   "version": "1.0.0",
-  "description": "Flow Tracker API Backend",
+  "description": "Blueprints - System Architecture Analyzer Backend API",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
