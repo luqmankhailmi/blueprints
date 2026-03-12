@@ -1,15 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  useNodesState,
-  useEdgesState,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
 import { flowAPI } from '../services/api';
-import { ArrowLeft, Code2, FileCode } from 'lucide-react';
+import { ArrowLeft, Zap, Layers, Code2, Play, Flag } from 'lucide-react';
 import '../styles/Flow.css';
 
 const FlowVisualization = () => {
@@ -17,8 +9,6 @@ const FlowVisualization = () => {
   const navigate = useNavigate();
   const [flow, setFlow] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   useEffect(() => {
     const fetchFlow = async () => {
@@ -26,30 +16,6 @@ const FlowVisualization = () => {
         const response = await flowAPI.getFlow(id);
         const flowData = response.data.flow;
         setFlow(flowData);
-        
-        if (flowData.flow_data.steps) {
-          const transformedNodes = flowData.flow_data.steps.nodes.map(node => ({
-            id: node.id,
-            data: { 
-              label: node.label,
-              ...node.data
-            },
-            position: node.position,
-            type: getNodeType(node.type),
-            style: getNodeStyle(node.type),
-          }));
-
-          const transformedEdges = flowData.flow_data.steps.edges.map(edge => ({
-            id: edge.id,
-            source: edge.source,
-            target: edge.target,
-            animated: true,
-            style: { stroke: '#00d9ff', strokeWidth: 2 },
-          }));
-
-          setNodes(transformedNodes);
-          setEdges(transformedEdges);
-        }
       } catch (error) {
         console.error('Failed to fetch flow:', error);
       } finally {
@@ -58,72 +24,67 @@ const FlowVisualization = () => {
     };
 
     fetchFlow();
-  }, [id, setNodes, setEdges]);
+  }, [id]);
 
-  const getNodeType = (type) => {
-    return 'default';
-  };
-
-  const getNodeStyle = (type) => {
-    const baseStyle = {
-      padding: '12px 20px',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '500',
-      border: '2px solid',
-      minWidth: '150px',
-      textAlign: 'center',
-    };
-
+  const getStepIcon = (type) => {
     switch (type) {
       case 'start':
-        return {
-          ...baseStyle,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: '#fff',
-          borderColor: '#764ba2',
-        };
+        return <Play size={20} />;
       case 'end':
-        return {
-          ...baseStyle,
-          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-          color: '#fff',
-          borderColor: '#f5576c',
-        };
+        return <Flag size={20} />;
       case 'file':
-        return {
-          ...baseStyle,
-          background: 'rgba(0, 217, 255, 0.1)',
-          color: '#00d9ff',
-          borderColor: '#00d9ff',
-        };
-      case 'middleware':
-        return {
-          ...baseStyle,
-          background: 'rgba(255, 184, 0, 0.1)',
-          color: '#ffb800',
-          borderColor: '#ffb800',
-        };
       case 'handler':
-        return {
-          ...baseStyle,
-          background: 'rgba(0, 255, 135, 0.1)',
-          color: '#00ff87',
-          borderColor: '#00ff87',
-        };
+        return <Code2 size={20} />;
+      case 'middleware':
+        return <Layers size={20} />;
       default:
-        return {
-          ...baseStyle,
-          background: 'rgba(255, 255, 255, 0.05)',
-          color: '#fff',
-          borderColor: '#444',
-        };
+        return <Zap size={20} />;
+    }
+  };
+
+  const getStepType = (type) => {
+    switch (type) {
+      case 'start':
+        return 'REQUEST';
+      case 'end':
+        return 'RESPONSE';
+      case 'file':
+        return 'ROUTE';
+      case 'handler':
+        return 'CONTROLLER';
+      case 'middleware':
+        return 'MIDDLEWARE';
+      default:
+        return type.toUpperCase();
+    }
+  };
+
+  const getStepColorClass = (type) => {
+    switch (type) {
+      case 'start':
+        return 'step-start';
+      case 'end':
+        return 'step-end';
+      case 'file':
+        return 'step-route';
+      case 'handler':
+        return 'step-controller';
+      case 'middleware':
+        return 'step-middleware';
+      default:
+        return 'step-default';
     }
   };
 
   if (loading) {
     return <div className="loading-page">Loading flow...</div>;
   }
+
+  if (!flow || !flow.flow_data || !flow.flow_data.steps) {
+    return <div className="loading-page">No flow data available</div>;
+  }
+
+  const steps = flow.flow_data.steps.nodes || [];
 
   return (
     <div className="flow-container">
@@ -132,55 +93,57 @@ const FlowVisualization = () => {
           <ArrowLeft size={20} />
           Back
         </button>
-        <div className="flow-info">
-          <div className="flow-method-badge">{flow?.method}</div>
-          <h1>{flow?.endpoint}</h1>
+      </div>
+
+      <div className="flow-content">
+        <div className="flow-title-section">
+          <h1>Request Flow</h1>
+          <div className="flow-endpoint-badge">
+            <span className="method-tag">{flow.method}</span>
+            <span className="endpoint-path">{flow.endpoint}</span>
+          </div>
         </div>
-      </div>
 
-      <div className="flow-details">
-        {flow?.flow_data.file && (
-          <div className="detail-item">
-            <FileCode size={16} />
-            <span>{flow.flow_data.file}</span>
-          </div>
-        )}
-        {flow?.flow_data.middleware?.length > 0 && (
-          <div className="detail-item">
-            <Code2 size={16} />
-            <span>{flow.flow_data.middleware.length} middleware</span>
-          </div>
-        )}
-        {flow?.flow_data.handlers?.length > 0 && (
-          <div className="detail-item">
-            <Code2 size={16} />
-            <span>{flow.flow_data.handlers.length} handlers</span>
-          </div>
-        )}
-      </div>
-
-      <div className="flow-visualization">
-        <div className="react-flow-wrapper" style={{ width: '100%', height: '100%' }}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            fitView
-            attributionPosition="bottom-left"
-          >
-            <Background color="#00d9ff" gap={16} size={1} style={{ opacity: 0.1 }} />
-            <Controls />
-            <MiniMap
-              nodeColor={(node) => {
-                const style = getNodeStyle(node.type);
-                return style.borderColor || '#444';
-              }}
-              style={{
-                background: 'rgba(0, 0, 0, 0.5)',
-              }}
-            />
-          </ReactFlow>
+        <div className="flow-steps">
+          {steps.map((step, index) => (
+            <React.Fragment key={step.id}>
+              <div className={`flow-step-card ${getStepColorClass(step.type)}`}>
+                <div className="step-icon">
+                  {getStepIcon(step.type)}
+                </div>
+                <div className="step-content">
+                  <div className="step-type">{getStepType(step.type)}</div>
+                  <div className="step-name">{step.label}</div>
+                  {step.data?.filePath && (
+                    <div className="step-file">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                        <polyline points="13 2 13 9 20 9"></polyline>
+                      </svg>
+                      {step.data.filePath}
+                    </div>
+                  )}
+                  {flow.flow_data.file && (step.type === 'file' || step.type === 'handler' || step.type === 'middleware') && (
+                    <div className="step-file">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                        <polyline points="13 2 13 9 20 9"></polyline>
+                      </svg>
+                      {flow.flow_data.file}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {index < steps.length - 1 && (
+                <div className="flow-arrow">
+                  <svg width="24" height="40" viewBox="0 0 24 40">
+                    <line x1="12" y1="0" x2="12" y2="32" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" />
+                    <polygon points="12,40 8,32 16,32" fill="currentColor" />
+                  </svg>
+                </div>
+              )}
+            </React.Fragment>
+          ))}
         </div>
       </div>
     </div>
