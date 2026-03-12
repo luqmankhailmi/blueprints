@@ -10,7 +10,7 @@ class GitHubService {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'FlowTracker-App'
+        'User-Agent': 'Blueprints-App'
       }
     });
   }

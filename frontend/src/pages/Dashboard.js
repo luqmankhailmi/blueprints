@@ -126,7 +126,7 @@ const Dashboard = () => {
         <div className="nav-left">
           <div className="logo">
             <FolderOpen size={24} />
-            <span>FlowTracker</span>
+            <span>Blueprints</span>
           </div>
         </div>
         <div className="nav-right">

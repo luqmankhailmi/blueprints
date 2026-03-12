@@ -60,7 +60,7 @@ const Register = () => {
           <div className="auth-header">
             <div className="logo">
               <Activity size={32} />
-              <span>FlowTracker</span>
+              <span>Blueprints</span>
             </div>
             <h1>Create Account</h1>
             <p>Start tracking your API flows</p>

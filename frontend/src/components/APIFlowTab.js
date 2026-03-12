@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, GitBranch, Filter, Code } from 'lucide-react';
+import { Zap, GitBranch, Filter, Code, FileCode } from 'lucide-react';
 
 const APIFlowTab = ({ flows, project }) => {
   if (!flows || flows.length === 0) {
@@ -30,6 +30,11 @@ const APIFlowTab = ({ flows, project }) => {
       'CONTROLLER': '#00b894',
       'START': '#667eea',
       'END': '#f093fb',
+      'middleware': '#a29bfe',
+      'handler': '#00b894',
+      'file': '#ff9f43',
+      'start': '#667eea',
+      'end': '#f093fb',
     };
     return colors[type] || '#00d9ff';
   };
@@ -60,23 +65,35 @@ const APIFlowTab = ({ flows, project }) => {
               }}
             >
               {/* Endpoint Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                <div
-                  style={{
-                    padding: '6px 12px',
-                    background: `${getMethodColor(flow.method)}20`,
-                    border: `1px solid ${getMethodColor(flow.method)}`,
-                    borderRadius: '6px',
-                    color: getMethodColor(flow.method),
-                    fontSize: '13px',
-                    fontWeight: '700',
-                  }}
-                >
-                  {flow.method.toUpperCase()}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <div
+                    style={{
+                      padding: '6px 12px',
+                      background: `${getMethodColor(flow.method)}20`,
+                      border: `1px solid ${getMethodColor(flow.method)}`,
+                      borderRadius: '6px',
+                      color: getMethodColor(flow.method),
+                      fontSize: '13px',
+                      fontWeight: '700',
+                    }}
+                  >
+                    {flow.method.toUpperCase()}
+                  </div>
+                  <code style={{ fontSize: '16px', color: '#00d9ff', fontFamily: 'Monaco, monospace' }}>
+                    {flow.endpoint}
+                  </code>
                 </div>
-                <code style={{ fontSize: '16px', color: '#00d9ff', fontFamily: 'Monaco, monospace' }}>
-                  {flow.endpoint}
-                </code>
+
+                {/* File Source */}
+                {flowData.file && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '88px' }}>
+                    <FileCode size={14} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                    <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontFamily: 'Monaco, monospace' }}>
+                      Found in: {flowData.file}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Flow Steps */}
@@ -110,15 +127,15 @@ const APIFlowTab = ({ flows, project }) => {
                             fontSize: '12px',
                           }}
                         >
-                          {node.type[0]}
+                          {node.type[0].toUpperCase()}
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '14px', color: '#fff', fontWeight: '600', marginBottom: '4px' }}>
                             {node.label || node.type}
                           </div>
-                          {node.file && (
+                          {node.data && node.data.filePath && (
                             <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontFamily: 'Monaco, monospace' }}>
-                              {node.file}
+                              {node.data.filePath}
                             </div>
                           )}
                         </div>

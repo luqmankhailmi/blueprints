@@ -159,15 +159,30 @@ const uploadProjectFile = async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    // Update project with file info
+    // Extract ZIP to permanent location
+    const AdmZip = require('adm-zip');
+    const zip = new AdmZip(req.file.path);
+    const extractPath = path.join(path.dirname(req.file.path), `extracted_${id}`);
+    
+    // Remove old extraction if exists
+    try {
+      await fs.rm(extractPath, { recursive: true, force: true });
+    } catch (err) {
+      // Ignore if doesn't exist
+    }
+    
+    // Extract to permanent location
+    zip.extractAllTo(extractPath, true);
+
+    // Update project with extracted path
     const updateResult = await pool.query(
       'UPDATE projects SET file_path = $1, file_name = $2, file_size = $3, uploaded_at = CURRENT_TIMESTAMP WHERE id = $4 RETURNING *',
-      [req.file.path, req.file.originalname, req.file.size, id]
+      [extractPath, req.file.originalname, req.file.size, id]
     );
 
-    // Analyze the uploaded file
+    // Analyze the extracted project (not the ZIP)
     const analyzer = new FlowAnalyzer();
-    const flows = await analyzer.analyzeProject(req.file.path);
+    const flows = await analyzer.analyzeProject(extractPath, true); // true = already extracted
 
     // Delete existing flows for this project
     await pool.query('DELETE FROM flows WHERE project_id = $1', [id]);
@@ -179,6 +194,9 @@ const uploadProjectFile = async (req, res) => {
         [id, flow.endpoint, flow.method, JSON.stringify(flow.flowData)]
       );
     }
+
+    // Delete the original ZIP file
+    await fs.unlink(req.file.path);
 
     res.json({
       message: 'File uploaded and analyzed successfully',

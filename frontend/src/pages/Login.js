@@ -42,7 +42,7 @@ const Login = () => {
           <div className="auth-header">
             <div className="logo">
               <Activity size={32} />
-              <span>FlowTracker</span>
+              <span>Blueprints</span>
             </div>
             <h1>Welcome Back</h1>
             <p>Track and visualize your API flows</p>

@@ -1,5 +1,5 @@
 {
-  "name": "flow-tracker-backend",
+  "name": "blueprints-backend",
   "version": "1.0.0",
   "description": "Flow Tracker API Backend",
   "main": "src/server.js",
