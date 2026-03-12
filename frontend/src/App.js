@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AuthCallback from './pages/AuthCallback';
+import GitHubCallback from './pages/GitHubCallback';
 import Dashboard from './pages/Dashboard';
 import Project from './pages/Project';
 import FlowVisualization from './pages/FlowVisualization';
@@ -66,6 +67,14 @@ function App() {
             } 
           />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route 
+            path="/settings/github/callback" 
+            element={
+              <ProtectedRoute>
+                <GitHubCallback />
+              </ProtectedRoute>
+            } 
+          />
           <Route 
             path="/dashboard" 
             element={

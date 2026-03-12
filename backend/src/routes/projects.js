@@ -7,7 +7,8 @@ const {
   getProjects,
   getProject,
   uploadProjectFile,
-  deleteProject
+  deleteProject,
+  analyzeGitHubRepo
 } = require('../controllers/projectController');
 
 const router = express.Router();
@@ -45,6 +46,7 @@ router.post('/', createProject);
 router.get('/', getProjects);
 router.get('/:id', getProject);
 router.post('/:id/upload', upload.single('file'), uploadProjectFile);
+router.post('/:id/analyze-github', analyzeGitHubRepo);
 router.delete('/:id', deleteProject);
 
 module.exports = router;

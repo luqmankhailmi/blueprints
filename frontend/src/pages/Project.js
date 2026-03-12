@@ -48,6 +48,21 @@ const Project = () => {
     }
   };
 
+  const handleAnalyzeGitHub = async () => {
+    setUploading(true);
+
+    try {
+      await projectAPI.analyzeGitHub(id);
+      await fetchProject();
+      await fetchFlows();
+    } catch (error) {
+      console.error('Failed to analyze repository:', error);
+      alert('Failed to analyze repository');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (!selectedFile) return;
 
@@ -84,7 +99,7 @@ const Project = () => {
       </div>
 
       <div className="project-content">
-        {!project?.file_name ? (
+        {!project?.uploaded_at && project?.source_type === 'upload' ? (
           <div className="upload-section">
             <div className="upload-card">
               <Upload size={48} />
@@ -114,6 +129,24 @@ const Project = () => {
               </div>
             </div>
           </div>
+        ) : !project?.uploaded_at && project?.source_type === 'github' ? (
+          <div className="upload-section">
+            <div className="upload-card">
+              <Zap size={48} />
+              <h2>Analyze GitHub Repository</h2>
+              <p>Repository: <strong>{project.github_repo_name}</strong></p>
+              <p>Branch: <strong>{project.github_branch}</strong></p>
+              
+              <button
+                className="btn-primary"
+                onClick={handleAnalyzeGitHub}
+                disabled={uploading}
+                style={{ marginTop: '20px' }}
+              >
+                {uploading ? 'Analyzing...' : 'Analyze Repository'}
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="flows-section">
             <div className="flows-header">
@@ -123,7 +156,11 @@ const Project = () => {
               </div>
               <div className="file-info">
                 <FileCode size={18} />
-                <span>{project.file_name}</span>
+                <span>
+                  {project.source_type === 'github' 
+                    ? project.github_repo_name 
+                    : project.file_name}
+                </span>
               </div>
             </div>
 

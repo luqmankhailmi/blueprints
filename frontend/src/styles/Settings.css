@@ -102,6 +102,34 @@
   border: 1px solid rgba(255, 184, 0, 0.3);
 }
 
+.badge-action {
+  background: rgba(0, 217, 255, 0.1);
+  color: #00d9ff;
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.badge-action:hover {
+  background: rgba(0, 217, 255, 0.2);
+}
+
+.btn-disconnect {
+  padding: 6px 12px;
+  background: rgba(255, 85, 108, 0.1);
+  border: 1px solid rgba(255, 85, 108, 0.3);
+  border-radius: 6px;
+  color: #ff556c;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-disconnect:hover {
+  background: rgba(255, 85, 108, 0.2);
+}
+
 .user-profile {
   display: flex;
   align-items: center;

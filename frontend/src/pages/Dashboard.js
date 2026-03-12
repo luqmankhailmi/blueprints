@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { projectAPI } from '../services/api';
-import { Plus, FolderOpen, Calendar, FileArchive, Trash2, LogOut, Settings } from 'lucide-react';
+import { projectAPI, githubAPI } from '../services/api';
+import { Plus, FolderOpen, Calendar, FileArchive, Trash2, LogOut, Settings, Github } from 'lucide-react';
 import '../styles/Dashboard.css';
 
 const Dashboard = () => {
@@ -10,13 +10,48 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [sourceType, setSourceType] = useState('upload'); // 'upload' or 'github'
+  const [selectedRepo, setSelectedRepo] = useState(null);
+  const [repositories, setRepositories] = useState([]);
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [loadingRepos, setLoadingRepos] = useState(false);
   const [creating, setCreating] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchProjects();
+    checkGitHubStatus();
   }, []);
+
+  const checkGitHubStatus = async () => {
+    try {
+      const response = await githubAPI.getStatus();
+      setGithubConnected(response.data.connected);
+    } catch (error) {
+      console.error('Failed to check GitHub status:', error);
+    }
+  };
+
+  const fetchGitHubRepos = async () => {
+    setLoadingRepos(true);
+    try {
+      const response = await githubAPI.getRepositories();
+      setRepositories(response.data.repositories);
+    } catch (error) {
+      console.error('Failed to fetch repositories:', error);
+      alert('Failed to fetch GitHub repositories');
+    } finally {
+      setLoadingRepos(false);
+    }
+  };
+
+  useEffect(() => {
+    if (sourceType === 'github' && githubConnected && repositories.length === 0) {
+      fetchGitHubRepos();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceType, githubConnected]);
 
   const fetchProjects = async () => {
     try {
@@ -34,12 +69,26 @@ const Dashboard = () => {
     setCreating(true);
 
     try {
-      const response = await projectAPI.create({ name: newProjectName });
+      const projectData = {
+        name: newProjectName,
+        sourceType: sourceType,
+      };
+
+      if (sourceType === 'github' && selectedRepo) {
+        projectData.githubRepoUrl = selectedRepo.html_url;
+        projectData.githubRepoName = selectedRepo.full_name;
+        projectData.githubBranch = selectedRepo.default_branch;
+      }
+
+      const response = await projectAPI.create(projectData);
       setProjects([response.data.project, ...projects]);
       setNewProjectName('');
+      setSelectedRepo(null);
+      setSourceType('upload');
       setShowNewProject(false);
     } catch (error) {
       console.error('Failed to create project:', error);
+      alert('Failed to create project');
     } finally {
       setCreating(false);
     }
@@ -122,11 +171,67 @@ const Dashboard = () => {
                     autoFocus
                   />
                 </div>
+
+                <div className="input-group">
+                  <label>Source</label>
+                  <div className="source-tabs">
+                    <button
+                      type="button"
+                      className={`source-tab ${sourceType === 'upload' ? 'active' : ''}`}
+                      onClick={() => setSourceType('upload')}
+                    >
+                      <FileArchive size={18} />
+                      Upload ZIP
+                    </button>
+                    <button
+                      type="button"
+                      className={`source-tab ${sourceType === 'github' ? 'active' : ''}`}
+                      onClick={() => setSourceType('github')}
+                      disabled={!githubConnected}
+                    >
+                      <Github size={18} />
+                      GitHub {!githubConnected && '(Not Connected)'}
+                    </button>
+                  </div>
+                </div>
+
+                {sourceType === 'github' && (
+                  <div className="input-group">
+                    <label>Select Repository</label>
+                    {loadingRepos ? (
+                      <div className="loading-repos">Loading repositories...</div>
+                    ) : (
+                      <select
+                        value={selectedRepo?.id || ''}
+                        onChange={(e) => {
+                          const repo = repositories.find(r => r.id === parseInt(e.target.value));
+                          setSelectedRepo(repo);
+                          if (repo && !newProjectName) {
+                            setNewProjectName(repo.name);
+                          }
+                        }}
+                        required
+                      >
+                        <option value="">Choose a repository...</option>
+                        {repositories.map(repo => (
+                          <option key={repo.id} value={repo.id}>
+                            {repo.full_name} {repo.private ? '(Private)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
+
                 <div className="modal-actions">
                   <button type="button" className="btn-secondary" onClick={() => setShowNewProject(false)}>
                     Cancel
                   </button>
-                  <button type="submit" className="btn-primary" disabled={creating}>
+                  <button 
+                    type="submit" 
+                    className="btn-primary" 
+                    disabled={creating || (sourceType === 'github' && !selectedRepo)}
+                  >
                     {creating ? 'Creating...' : 'Create'}
                   </button>
                 </div>

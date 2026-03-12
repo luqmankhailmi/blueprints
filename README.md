@@ -9,7 +9,7 @@ A powerful full-stack application that helps you track and visualize your Expres
 1. **User Authentication**
    - Email-based registration and login
    - JWT-based authentication
-   - Google OAuth integration (ready for configuration)
+   - **Google OAuth 2.0 integration** (fully functional)
 
 2. **Project Management**
    - Create multiple projects
@@ -65,7 +65,39 @@ Before you begin, ensure you have the following installed:
 cd flow-tracker
 ```
 
-### 2. Database Setup
+### 2. Google OAuth Setup (Optional but Recommended)
+
+To enable Google OAuth login:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the Google+ API
+4. Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client ID"
+5. Configure the OAuth consent screen
+6. For Application type, select "Web application"
+7. Add these URLs:
+
+**Authorized JavaScript origins:**
+```
+http://localhost:3000
+http://localhost:5000
+```
+
+**Authorized redirect URIs:**
+```
+http://localhost:5000/api/auth/google/callback
+```
+
+8. Copy your Client ID and Client Secret
+9. Add them to `backend/.env`:
+```
+GOOGLE_CLIENT_ID=your_client_id_here
+GOOGLE_CLIENT_SECRET=your_client_secret_here
+```
+
+**For Production:** Replace localhost URLs with your actual domain.
+
+### 3. Database Setup
 
 Create a PostgreSQL database:
 
@@ -263,6 +295,93 @@ Currently, uploaded ZIP files are stored on the server's file system in `backend
 - Ensure your Express.js project uses standard route patterns
 - Check server logs for parsing errors
 - The analyzer looks for files with keywords: 'route', 'router', 'controller', 'api', 'endpoint'
+
+## Development
+
+### Running in Development Mode
+
+Backend with auto-reload:
+```bash
+cd backend
+npm install -g nodemon  # If not already installed
+npm run dev
+```
+
+Frontend:
+```bash
+cd frontend
+npm start
+```
+
+---
+
+## Deployment
+
+### Deploy to Railway (Recommended)
+
+FlowTracker is optimized for deployment on Railway.app with PostgreSQL:
+
+1. **Quick Deploy:**
+   - See detailed guide: [`RAILWAY_DEPLOYMENT.md`](./RAILWAY_DEPLOYMENT.md)
+   - Railway provides free PostgreSQL database
+   - Automatic SSL/HTTPS
+   - Easy environment variable management
+   - Auto-deployment from GitHub
+
+2. **Key Features on Railway:**
+   - 🚀 Automatic deployments on git push
+   - 📊 Built-in monitoring and logs
+   - 🔒 SSL certificates included
+   - 💾 PostgreSQL database included
+   - 🌍 CDN and edge caching
+
+3. **Estimated Costs:**
+   - Free tier: $5 credits/month
+   - Typical usage: ~$2-5/month for small projects
+   - Scales automatically with traffic
+
+For complete deployment instructions, see [`RAILWAY_DEPLOYMENT.md`](./RAILWAY_DEPLOYMENT.md)
+
+### Alternative Deployment Options
+
+<details>
+<summary>Deploy to Heroku</summary>
+
+Similar setup to Railway, use Heroku PostgreSQL add-on:
+```bash
+heroku create flowtracker-api
+heroku addons:create heroku-postgresql:mini
+heroku config:set JWT_SECRET=your-secret-key
+git push heroku main
+```
+</details>
+
+<details>
+<summary>Deploy to Vercel (Frontend) + Railway (Backend)</summary>
+
+**Frontend on Vercel:**
+```bash
+cd frontend
+vercel
+```
+
+**Backend on Railway:**
+Follow Railway deployment guide for backend only.
+</details>
+
+<details>
+<summary>Self-Hosted (VPS/Docker)</summary>
+
+Requires:
+- Node.js 18+
+- PostgreSQL 12+
+- Nginx (reverse proxy)
+- SSL certificate (Let's Encrypt)
+
+See deployment guides for DigitalOcean, AWS, or Docker setup.
+</details>
+
+---
 
 ## Development
 

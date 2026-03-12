@@ -8,6 +8,7 @@ const { createTables } = require('./config/schema');
 const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
 const flowRoutes = require('./routes/flows');
+const githubRoutes = require('./routes/github');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,6 +32,7 @@ app.use(passport.initialize());
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/flows', flowRoutes);
+app.use('/api/github', githubRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

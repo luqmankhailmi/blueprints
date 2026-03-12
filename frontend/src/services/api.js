@@ -31,6 +31,7 @@ export const projectAPI = {
   uploadFile: (id, formData) => api.post(`/projects/${id}/upload`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  analyzeGitHub: (id) => api.post(`/projects/${id}/analyze-github`),
   delete: (id) => api.delete(`/projects/${id}`),
 };
 
@@ -38,6 +39,15 @@ export const projectAPI = {
 export const flowAPI = {
   getProjectFlows: (projectId) => api.get(`/flows/project/${projectId}`),
   getFlow: (flowId) => api.get(`/flows/${flowId}`),
+};
+
+// GitHub endpoints
+export const githubAPI = {
+  connect: (code) => api.post('/github/connect', { code }),
+  disconnect: () => api.post('/github/disconnect'),
+  getStatus: () => api.get('/github/status'),
+  getRepositories: () => api.get('/github/repositories'),
+  getBranches: (owner, repo) => api.get(`/github/repositories/${owner}/${repo}/branches`),
 };
 
 export default api;

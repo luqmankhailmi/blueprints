@@ -11,6 +11,9 @@ const createTables = async () => {
         name VARCHAR(255),
         google_id VARCHAR(255) UNIQUE,
         avatar_url TEXT,
+        github_id VARCHAR(255) UNIQUE,
+        github_token TEXT,
+        github_username VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -23,9 +26,13 @@ const createTables = async () => {
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         name VARCHAR(255) NOT NULL,
         description TEXT,
+        source_type VARCHAR(50) DEFAULT 'upload',
         file_path TEXT,
         file_name VARCHAR(255),
         file_size BIGINT,
+        github_repo_url TEXT,
+        github_repo_name VARCHAR(255),
+        github_branch VARCHAR(255) DEFAULT 'main',
         uploaded_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -49,6 +56,7 @@ const createTables = async () => {
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
       CREATE INDEX IF NOT EXISTS idx_flows_project_id ON flows(project_id);
+      CREATE INDEX IF NOT EXISTS idx_users_github_id ON users(github_id);
     `);
 
     console.log('Database tables created successfully');

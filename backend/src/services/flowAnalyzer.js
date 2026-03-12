@@ -9,19 +9,27 @@ class FlowAnalyzer {
     this.routes = [];
   }
 
-  async analyzeProject(zipFilePath) {
+  async analyzeProject(zipFilePath, isDirectory = false) {
     try {
-      const zip = new AdmZip(zipFilePath);
-      const tempDir = path.join(path.dirname(zipFilePath), `temp_${Date.now()}`);
-      
-      // Extract ZIP
-      zip.extractAllTo(tempDir, true);
+      let tempDir;
+
+      if (isDirectory) {
+        // Already a directory (from GitHub)
+        tempDir = zipFilePath;
+      } else {
+        // Extract ZIP file
+        const zip = new AdmZip(zipFilePath);
+        tempDir = path.join(path.dirname(zipFilePath), `temp_${Date.now()}`);
+        zip.extractAllTo(tempDir, true);
+      }
 
       // Find and analyze route files
       await this.findAndAnalyzeRoutes(tempDir);
 
-      // Clean up temp directory
-      await this.cleanupDirectory(tempDir);
+      // Clean up temp directory only if we extracted a ZIP
+      if (!isDirectory) {
+        await this.cleanupDirectory(tempDir);
+      }
 
       return this.routes;
     } catch (error) {
