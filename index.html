@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Blueprints — Understand Any Codebase, Instantly</title>
+ <meta name="description"
+  content="Upload a project. Get the full picture. Blueprints analyzes your codebase and visualizes your tech stack, API flows, dependencies, and more.">
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ <link
+  href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap"
+  rel="stylesheet">
+ <style>
+  *,
+  *::before,
+  *::after {
+   box-sizing: border-box;
+   margin: 0;
+   padding: 0;
+  }
+
+  :root {
+   --navy: #050810;
+   --navy2: #0a0f1e;
+   --navy3: #0f1628;
+   --panel: #111827;
+   --cyan: #00d9ff;
+   --cyan2: #00b4d8;
+   --amber: #ff9f43;
+   --purple: #a29bfe;
+   --green: #00b894;
+   --red: #ff556c;
+   --text: #e8eaf0;
+   --muted: #5a6278;
+   --border: rgba(0, 217, 255, 0.1);
+   --grid: rgba(0, 217, 255, 0.04);
+  }
+
+  html {
+   scroll-behavior: smooth;
+  }
+
+  body {
+   background: var(--navy);
+   color: var(--text);
+   font-family: 'DM Sans', sans-serif;
+   font-size: 16px;
+   line-height: 1.6;
+   overflow-x: hidden;
+  }
+
+  /* ── Blueprint grid background ─────────────────────────── */
+  body::before {
+   content: '';
+   position: fixed;
+   inset: 0;
+   background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+   background-size: 48px 48px;
+   pointer-events: none;
+   z-index: 0;
+  }
+
+  /* ── Noise grain ───────────────────────────────────────── */
+  body::after {
+   content: '';
+   position: fixed;
+   inset: 0;
+   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+   pointer-events: none;
+   z-index: 0;
+   opacity: 0.4;
+  }
+
+  /* ── Utilities ─────────────────────────────────────────── */
+  .rel {
+   position: relative;
+   z-index: 1;
+  }
+
+  .mono {
+   font-family: 'JetBrains Mono', monospace;
+  }
+
+  .display {
+   font-family: 'Syne', sans-serif;
+  }
+
+  /* ── Nav ───────────────────────────────────────────────── */
+  nav {
+   position: fixed;
+   top: 0;
+   left: 0;
+   right: 0;
+   z-index: 100;
+   padding: 0 40px;
+   height: 64px;
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   background: rgba(5, 8, 16, 0.7);
+   backdrop-filter: blur(20px);
+   border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+   display: flex;
+   align-items: center;
+   gap: 10px;
+   font-family: 'Syne', sans-serif;
+   font-weight: 700;
+   font-size: 18px;
+   color: var(--text);
+   text-decoration: none;
+  }
+
+  .nav-logo svg {
+   flex-shrink: 0;
+  }
+
+  .nav-links {
+   display: flex;
+   align-items: center;
+   gap: 32px;
+   list-style: none;
+  }
+
+  .nav-links a {
+   color: var(--muted);
+   text-decoration: none;
+   font-size: 14px;
+   transition: color 0.2s;
+  }
+
+  .nav-links a:hover {
+   color: var(--text);
+  }
+
+  .nav-cta {
+   padding: 8px 20px;
+   background: var(--cyan);
+   color: var(--navy) !important;
+   border-radius: 8px;
+   font-weight: 500 !important;
+   font-size: 14px !important;
+   transition: opacity 0.2s !important;
+  }
+
+  .nav-cta:hover {
+   opacity: 0.85;
+  }
+
+  /* ── Hero ──────────────────────────────────────────────── */
+  .hero {
+   min-height: 100vh;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: 120px 40px 80px;
+   text-align: center;
+   position: relative;
+   z-index: 1;
+  }
+
+  /* Radial glow behind hero */
+  .hero::before {
+   content: '';
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   transform: translate(-50%, -60%);
+   width: 700px;
+   height: 700px;
+   background: radial-gradient(circle, rgba(0, 217, 255, 0.07) 0%, transparent 70%);
+   pointer-events: none;
+  }
+
+  .hero-badge {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 6px 14px;
+   border: 1px solid rgba(0, 217, 255, 0.3);
+   border-radius: 100px;
+   font-family: 'JetBrains Mono', monospace;
+   font-size: 12px;
+   color: var(--cyan);
+   margin-bottom: 32px;
+   animation: fadeSlideDown 0.6s ease both;
+  }
+
+  .hero-badge-dot {
+   width: 6px;
+   height: 6px;
+   border-radius: 50%;
+   background: var(--cyan);
+   animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse {
+
+   0%,
+   100% {
+    opacity: 1;
+    transform: scale(1);
+   }
+
+   50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+   }
+  }
+
+  .hero h1 {
+   font-family: 'Syne', sans-serif;
+   font-size: clamp(42px, 7vw, 88px);
+   font-weight: 800;
+   line-height: 1.0;
+   letter-spacing: -0.03em;
+   margin-bottom: 24px;
+   animation: fadeSlideDown 0.6s 0.1s ease both;
+  }
+
+  .hero h1 .accent {
+   color: var(--cyan);
+   position: relative;
+   display: inline-block;
+  }
+
+  /* Underline accent */
+  .hero h1 .accent::after {
+   content: '';
+   position: absolute;
+   bottom: -4px;
+   left: 0;
+   right: 0;
+   height: 3px;
+   background: var(--cyan);
+   opacity: 0.4;
+   border-radius: 2px;
+  }
+
+  .hero p {
+   max-width: 520px;
+   font-size: 18px;
+   color: rgba(232, 234, 240, 0.6);
+   margin-bottom: 44px;
+   line-height: 1.7;
+   animation: fadeSlideDown 0.6s 0.2s ease both;
+  }
+
+  .hero-actions {
+   display: flex;
+   align-items: center;
+   gap: 16px;
+   flex-wrap: wrap;
+   justify-content: center;
+   animation: fadeSlideDown 0.6s 0.3s ease both;
+  }
+
+  .btn-primary {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 14px 28px;
+   background: var(--cyan);
+   color: var(--navy);
+   border-radius: 10px;
+   font-weight: 600;
+   font-size: 15px;
+   text-decoration: none;
+   transition: all 0.2s;
+   border: none;
+   cursor: pointer;
+  }
+
+  .btn-primary:hover {
+   transform: translateY(-2px);
+   box-shadow: 0 8px 24px rgba(0, 217, 255, 0.25);
+  }
+
+  .btn-secondary {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 14px 28px;
+   background: transparent;
+   color: var(--text);
+   border-radius: 10px;
+   font-weight: 500;
+   font-size: 15px;
+   text-decoration: none;
+   border: 1px solid rgba(255, 255, 255, 0.12);
+   transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+   border-color: rgba(0, 217, 255, 0.4);
+   color: var(--cyan);
+  }
+
+  /* ── Hero preview window ───────────────────────────────── */
+  .hero-preview {
+   margin-top: 72px;
+   width: 100%;
+   max-width: 900px;
+   position: relative;
+   animation: fadeSlideUp 0.8s 0.5s ease both;
+  }
+
+  .preview-window {
+   background: var(--navy3);
+   border: 1px solid rgba(0, 217, 255, 0.15);
+   border-radius: 16px;
+   overflow: hidden;
+   box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6), 0 0 80px rgba(0, 217, 255, 0.04);
+  }
+
+  .preview-titlebar {
+   background: rgba(255, 255, 255, 0.03);
+   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+   padding: 12px 20px;
+   display: flex;
+   align-items: center;
+   gap: 16px;
+  }
+
+  .preview-dots {
+   display: flex;
+   gap: 7px;
+  }
+
+  .preview-dots span {
+   width: 12px;
+   height: 12px;
+   border-radius: 50%;
+  }
+
+  .preview-dots span:nth-child(1) {
+   background: #ff5f56;
+  }
+
+  .preview-dots span:nth-child(2) {
+   background: #febc2e;
+  }
+
+  .preview-dots span:nth-child(3) {
+   background: #28c840;
+  }
+
+  .preview-url {
+   flex: 1;
+   background: rgba(0, 0, 0, 0.3);
+   border-radius: 6px;
+   padding: 5px 12px;
+   font-family: 'JetBrains Mono', monospace;
+   font-size: 12px;
+   color: var(--muted);
+  }
+
+  .preview-body {
+   padding: 28px;
+   display: grid;
+   grid-template-columns: 200px 1fr;
+   gap: 20px;
+   min-height: 320px;
+  }
+
+  .preview-sidebar {
+   display: flex;
+   flex-direction: column;
+   gap: 8px;
+  }
+
+  .preview-tab {
+   padding: 9px 14px;
+   border-radius: 8px;
+   font-size: 13px;
+   color: var(--muted);
+   display: flex;
+   align-items: center;
+   gap: 9px;
+   cursor: default;
+   transition: all 0.2s;
+  }
+
+  .preview-tab.active {
+   background: rgba(0, 217, 255, 0.08);
+   color: var(--cyan);
+   border: 1px solid rgba(0, 217, 255, 0.15);
+  }
+
+  .preview-tab svg {
+   opacity: 0.6;
+   flex-shrink: 0;
+  }
+
+  .preview-tab.active svg {
+   opacity: 1;
+  }
+
+  .preview-main {
+   display: flex;
+   flex-direction: column;
+   gap: 14px;
+  }
+
+  .preview-section-title {
+   font-size: 11px;
+   color: var(--muted);
+   text-transform: uppercase;
+   letter-spacing: 1px;
+   font-family: 'JetBrains Mono', monospace;
+   margin-bottom: 4px;
+  }
+
+  .preview-chips {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 8px;
+  }
+
+  .chip {
+   padding: 5px 12px;
+   border-radius: 6px;
+   font-size: 12px;
+   font-family: 'JetBrains Mono', monospace;
+   border: 1px solid;
+  }
+
+  .chip-cyan {
+   background: rgba(0, 217, 255, 0.08);
+   color: #00d9ff;
+   border-color: rgba(0, 217, 255, 0.2);
+  }
+
+  .chip-amber {
+   background: rgba(255, 159, 67, 0.08);
+   color: #ff9f43;
+   border-color: rgba(255, 159, 67, 0.2);
+  }
+
+  .chip-purple {
+   background: rgba(162, 155, 254, 0.08);
+   color: #a29bfe;
+   border-color: rgba(162, 155, 254, 0.2);
+  }
+
+  .chip-green {
+   background: rgba(0, 184, 148, 0.08);
+   color: #00b894;
+   border-color: rgba(0, 184, 148, 0.2);
+  }
+
+  .chip-red {
+   background: rgba(255, 85, 108, 0.08);
+   color: #ff556c;
+   border-color: rgba(255, 85, 108, 0.2);
+  }
+
+  .preview-flow {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   flex-wrap: wrap;
+  }
+
+  .flow-node {
+   padding: 6px 14px;
+   background: rgba(0, 217, 255, 0.06);
+   border: 1px solid rgba(0, 217, 255, 0.2);
+   border-radius: 8px;
+   font-size: 12px;
+   color: var(--cyan);
+   font-family: 'JetBrains Mono', monospace;
+  }
+
+  .flow-arrow {
+   color: var(--muted);
+   font-size: 14px;
+  }
+
+  .preview-stat-row {
+   display: grid;
+   grid-template-columns: repeat(3, 1fr);
+   gap: 10px;
+  }
+
+  .stat-mini {
+   background: rgba(255, 255, 255, 0.02);
+   border: 1px solid rgba(255, 255, 255, 0.05);
+   border-radius: 8px;
+   padding: 10px 12px;
+  }
+
+  .stat-mini-val {
+   font-family: 'Syne', sans-serif;
+   font-size: 22px;
+   font-weight: 700;
+   color: var(--cyan);
+   line-height: 1;
+  }
+
+  .stat-mini-lbl {
+   font-size: 11px;
+   color: var(--muted);
+   margin-top: 4px;
+  }
+
+  /* ── Animations ────────────────────────────────────────── */
+  @keyframes fadeSlideDown {
+   from {
+    opacity: 0;
+    transform: translateY(-16px);
+   }
+
+   to {
+    opacity: 1;
+    transform: translateY(0);
+   }
+  }
+
+  @keyframes fadeSlideUp {
+   from {
+    opacity: 0;
+    transform: translateY(24px);
+   }
+
+   to {
+    opacity: 1;
+    transform: translateY(0);
+   }
+  }
+
+  .reveal {
+   opacity: 0;
+   transform: translateY(24px);
+   transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .reveal.visible {
+   opacity: 1;
+   transform: translateY(0);
+  }
+
+  /* ── Sections ──────────────────────────────────────────── */
+  section {
+   position: relative;
+   z-index: 1;
+   padding: 100px 40px;
+   max-width: 1100px;
+   margin: 0 auto;
+  }
+
+  .section-label {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   font-family: 'JetBrains Mono', monospace;
+   font-size: 12px;
+   color: var(--cyan);
+   letter-spacing: 1px;
+   text-transform: uppercase;
+   margin-bottom: 16px;
+  }
+
+  .section-label::before {
+   content: '//';
+   opacity: 0.4;
+  }
+
+  h2 {
+   font-family: 'Syne', sans-serif;
+   font-size: clamp(28px, 4vw, 48px);
+   font-weight: 700;
+   line-height: 1.1;
+   letter-spacing: -0.02em;
+   margin-bottom: 16px;
+  }
+
+  .section-sub {
+   font-size: 17px;
+   color: rgba(232, 234, 240, 0.55);
+   max-width: 480px;
+   line-height: 1.7;
+   margin-bottom: 56px;
+  }
+
+  /* ── Feature grid ──────────────────────────────────────── */
+  .features-grid {
+   display: grid;
+   grid-template-columns: repeat(3, 1fr);
+   gap: 20px;
+  }
+
+  .feature-card {
+   background: var(--panel);
+   border: 1px solid rgba(255, 255, 255, 0.05);
+   border-radius: 16px;
+   padding: 28px;
+   transition: all 0.3s ease;
+   position: relative;
+   overflow: hidden;
+  }
+
+  .feature-card::before {
+   content: '';
+   position: absolute;
+   top: 0;
+   left: 0;
+   right: 0;
+   height: 1px;
+   background: linear-gradient(90deg, transparent, var(--card-accent, var(--cyan)), transparent);
+   opacity: 0;
+   transition: opacity 0.3s;
+  }
+
+  .feature-card:hover {
+   transform: translateY(-4px);
+   border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .feature-card:hover::before {
+   opacity: 1;
+  }
+
+  .feature-icon {
+   width: 44px;
+   height: 44px;
+   border-radius: 10px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   margin-bottom: 18px;
+   font-size: 20px;
+  }
+
+  .feature-card h3 {
+   font-family: 'Syne', sans-serif;
+   font-size: 18px;
+   font-weight: 600;
+   margin-bottom: 10px;
+   color: var(--text);
+  }
+
+  .feature-card p {
+   font-size: 14px;
+   color: var(--muted);
+   line-height: 1.65;
+  }
+
+  /* ── How it works ──────────────────────────────────────── */
+  .steps {
+   display: grid;
+   grid-template-columns: repeat(3, 1fr);
+   gap: 32px;
+   position: relative;
+  }
+
+  .steps::before {
+   content: '';
+   position: absolute;
+   top: 28px;
+   left: calc(16.6% + 28px);
+   right: calc(16.6% + 28px);
+   height: 1px;
+   background: linear-gradient(90deg, var(--border) 0%, var(--cyan) 50%, var(--border) 100%);
+   opacity: 0.4;
+  }
+
+  .step {
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 16px;
+  }
+
+  .step-number {
+   width: 56px;
+   height: 56px;
+   border-radius: 50%;
+   border: 1px solid var(--border);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-family: 'JetBrains Mono', monospace;
+   font-size: 18px;
+   font-weight: 500;
+   color: var(--cyan);
+   background: var(--navy2);
+   position: relative;
+   z-index: 1;
+   flex-shrink: 0;
+  }
+
+  .step h3 {
+   font-family: 'Syne', sans-serif;
+   font-size: 20px;
+   font-weight: 600;
+   margin-bottom: 8px;
+  }
+
+  .step p {
+   font-size: 15px;
+   color: var(--muted);
+   line-height: 1.65;
+  }
+
+  /* ── Stack support ─────────────────────────────────────── */
+  .stack-grid {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 12px;
+  }
+
+  .stack-item {
+   display: flex;
+   align-items: center;
+   gap: 9px;
+   padding: 10px 18px;
+   background: var(--panel);
+   border: 1px solid rgba(255, 255, 255, 0.06);
+   border-radius: 10px;
+   font-size: 14px;
+   color: rgba(232, 234, 240, 0.7);
+   transition: all 0.2s;
+  }
+
+  .stack-item:hover {
+   border-color: rgba(0, 217, 255, 0.25);
+   color: var(--text);
+  }
+
+  .stack-dot {
+   width: 8px;
+   height: 8px;
+   border-radius: 50%;
+   flex-shrink: 0;
+  }
+
+  /* ── CTA section ───────────────────────────────────────── */
+  .cta-section {
+   max-width: 1100px;
+   margin: 0 auto 100px;
+   padding: 0 40px;
+   position: relative;
+   z-index: 1;
+  }
+
+  .cta-box {
+   background: linear-gradient(135deg, rgba(0, 217, 255, 0.05) 0%, rgba(162, 155, 254, 0.05) 100%);
+   border: 1px solid rgba(0, 217, 255, 0.15);
+   border-radius: 24px;
+   padding: 72px 60px;
+   text-align: center;
+   position: relative;
+   overflow: hidden;
+  }
+
+  .cta-box::before {
+   content: '';
+   position: absolute;
+   top: -100px;
+   left: 50%;
+   transform: translateX(-50%);
+   width: 500px;
+   height: 300px;
+   background: radial-gradient(circle, rgba(0, 217, 255, 0.06) 0%, transparent 70%);
+   pointer-events: none;
+  }
+
+  .cta-box h2 {
+   font-size: clamp(28px, 4vw, 52px);
+   margin-bottom: 16px;
+  }
+
+  .cta-box p {
+   color: rgba(232, 234, 240, 0.55);
+   font-size: 17px;
+   margin-bottom: 40px;
+  }
+
+  /* ── Footer ────────────────────────────────────────────── */
+  footer {
+   position: relative;
+   z-index: 1;
+   border-top: 1px solid rgba(255, 255, 255, 0.05);
+   padding: 32px 40px;
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   max-width: 1100px;
+   margin: 0 auto;
+  }
+
+  footer p {
+   font-size: 13px;
+   color: var(--muted);
+  }
+
+  footer a {
+   color: var(--muted);
+   text-decoration: none;
+   font-size: 13px;
+   transition: color 0.2s;
+  }
+
+  footer a:hover {
+   color: var(--cyan);
+  }
+
+  /* ── Divider line ──────────────────────────────────────── */
+  .divider {
+   position: relative;
+   z-index: 1;
+   height: 1px;
+   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+   max-width: 1100px;
+   margin: 0 auto;
+  }
+
+  /* ── Responsive ────────────────────────────────────────── */
+  @media (max-width: 768px) {
+   nav {
+    padding: 0 20px;
+   }
+
+   .nav-links {
+    display: none;
+   }
+
+   .hero {
+    padding: 100px 24px 60px;
+   }
+
+   section {
+    padding: 60px 24px;
+   }
+
+   .features-grid {
+    grid-template-columns: 1fr;
+   }
+
+   .steps {
+    grid-template-columns: 1fr;
+   }
+
+   .steps::before {
+    display: none;
+   }
+
+   .preview-body {
+    grid-template-columns: 1fr;
+   }
+
+   .preview-sidebar {
+    display: none;
+   }
+
+   .cta-section {
+    padding: 0 24px;
+   }
+
+   .cta-box {
+    padding: 48px 28px;
+   }
+
+   footer {
+    padding: 24px;
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+   }
+
+   .preview-stat-row {
+    grid-template-columns: repeat(3, 1fr);
+   }
+
+   .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+   }
+  }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+   .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+   }
+  }
+ </style>
+</head>
+
+<body>
+
+ <!-- ── Nav ──────────────────────────────────────────────────────────── -->
+ <nav>
+  <a href="#" class="nav-logo">
+   <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+    <rect x="1" y="1" width="26" height="26" rx="6" stroke="#00d9ff" stroke-width="1.5" stroke-dasharray="4 2"
+     opacity="0.5" />
+    <rect x="5" y="5" width="8" height="8" rx="2" fill="#00d9ff" opacity="0.8" />
+    <rect x="15" y="5" width="8" height="8" rx="2" fill="#00d9ff" opacity="0.3" />
+    <rect x="5" y="15" width="8" height="8" rx="2" fill="#00d9ff" opacity="0.3" />
+    <rect x="15" y="15" width="8" height="8" rx="2" fill="#00d9ff" opacity="0.6" />
+   </svg>
+   Blueprints
+  </a>
+  <ul class="nav-links">
+   <li><a href="#features">Features</a></li>
+   <li><a href="#how-it-works">How it works</a></li>
+   <li><a href="#stack">Stack support</a></li>
+   <li><a href="https://github.com" class="nav-cta">Get started →</a></li>
+  </ul>
+ </nav>
+
+ <!-- ── Hero ─────────────────────────────────────────────────────────── -->
+ <div class="hero rel">
+  <div class="hero-badge">
+   <span class="hero-badge-dot"></span>
+   Open source · Self hostable
+  </div>
+
+  <h1 class="display">
+   Understand any<br>
+   codebase, <span class="accent">instantly</span>
+  </h1>
+
+  <p>
+   Upload a project ZIP and get a complete picture — tech stack, API flows,
+   dependencies, file structure, and AI-powered insights. In seconds.
+  </p>
+
+  <div class="hero-actions">
+   <a href="https://github.com" class="btn-primary">
+    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+     <path
+      d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+    </svg>
+    View on GitHub
+   </a>
+   <a href="#how-it-works" class="btn-secondary">
+    See how it works
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+     <path d="M5 12h14M12 5l7 7-7 7" />
+    </svg>
+   </a>
+  </div>
+
+  <!-- Preview window -->
+  <div class="hero-preview">
+   <div class="preview-window">
+    <div class="preview-titlebar">
+     <div class="preview-dots">
+      <span></span><span></span><span></span>
+     </div>
+     <div class="preview-url">blueprints.app / project / 3a8f2c</div>
+    </div>
+    <div class="preview-body">
+     <div class="preview-sidebar">
+      <div class="preview-tab active">
+       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7" />
+        <rect x="14" y="3" width="7" height="7" />
+        <rect x="3" y="14" width="7" height="7" />
+        <rect x="14" y="14" width="7" height="7" />
+       </svg>
+       Overview
+      </div>
+      <div class="preview-tab">
+       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <polyline points="13 17 18 12 13 7" />
+        <polyline points="6 17 11 12 6 7" />
+       </svg>
+       API Flow
+      </div>
+      <div class="preview-tab">
+       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+       </svg>
+       Files
+      </div>
+      <div class="preview-tab">
+       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2" />
+       </svg>
+       Tech Stack
+      </div>
+      <div class="preview-tab">
+       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+       </svg>
+       Statistics
+      </div>
+     </div>
+     <div class="preview-main">
+      <div>
+       <div class="preview-section-title">Tech stack detected</div>
+       <div class="preview-chips">
+        <span class="chip chip-cyan">Node.js</span>
+        <span class="chip chip-cyan">Express</span>
+        <span class="chip chip-amber">React</span>
+        <span class="chip chip-purple">PostgreSQL</span>
+        <span class="chip chip-green">Docker</span>
+        <span class="chip chip-amber">TypeScript</span>
+        <span class="chip chip-purple">Redis</span>
+       </div>
+      </div>
+      <div>
+       <div class="preview-section-title">API flow — POST /api/auth/login</div>
+       <div class="preview-flow">
+        <div class="flow-node">Request</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node">auth.middleware</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node">loginController</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node">db.query()</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node">Response</div>
+       </div>
+      </div>
+      <div class="preview-stat-row">
+       <div class="stat-mini">
+        <div class="stat-mini-val">184</div>
+        <div class="stat-mini-lbl">files</div>
+       </div>
+       <div class="stat-mini">
+        <div class="stat-mini-val">42</div>
+        <div class="stat-mini-lbl">endpoints</div>
+       </div>
+       <div class="stat-mini">
+        <div class="stat-mini-val">67</div>
+        <div class="stat-mini-lbl">dependencies</div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+ </div>
+
+ <div class="divider"></div>
+
+ <!-- ── Features ──────────────────────────────────────────────────────── -->
+ <section id="features">
+  <div class="reveal">
+   <div class="section-label">Features</div>
+   <h2>Everything you need to<br>read a codebase fast</h2>
+   <p class="section-sub">No setup. No config. Drop in a ZIP and every layer of the project becomes immediately
+    readable.</p>
+  </div>
+
+  <div class="features-grid">
+   <div class="feature-card reveal" style="--card-accent: #00d9ff; transition-delay: 0.05s">
+    <div class="feature-icon" style="background: rgba(0,217,255,0.1);">🔍</div>
+    <h3>Tech Stack Detection</h3>
+    <p>Automatically identifies frameworks, libraries, databases, and tooling from your package files and source code —
+     including Node.js, Spring Boot, and Maven projects.</p>
+   </div>
+
+   <div class="feature-card reveal" style="--card-accent: #a29bfe; transition-delay: 0.1s">
+    <div class="feature-icon" style="background: rgba(162,155,254,0.1);">⚡</div>
+    <h3>API Flow Visualization</h3>
+    <p>Traces every Express.js route from HTTP request through middleware, handlers, and internal calls like DB queries
+     and service functions — all the way to the response.</p>
+   </div>
+
+   <div class="feature-card reveal" style="--card-accent: #ff9f43; transition-delay: 0.15s">
+    <div class="feature-icon" style="background: rgba(255,159,67,0.1);">📦</div>
+    <h3>Dependency Analysis</h3>
+    <p>Scans and categorizes all dependencies across npm, Maven, and Gradle ecosystems. Understand exactly what your
+     project relies on and why.</p>
+   </div>
+
+   <div class="feature-card reveal" style="--card-accent: #00b894; transition-delay: 0.2s">
+    <div class="feature-icon" style="background: rgba(0,184,148,0.1);">🗂️</div>
+    <h3>File Browser</h3>
+    <p>Navigate the full directory tree with syntax-highlighted file previews. Instantly understand project structure
+     without cloning or setting up a local environment.</p>
+   </div>
+
+   <div class="feature-card reveal" style="--card-accent: #fd79a8; transition-delay: 0.25s">
+    <div class="feature-icon" style="background: rgba(253,121,168,0.1);">✨</div>
+    <h3>AI-Powered Insights</h3>
+    <p>Powered by Groq and Llama 3.3 70B, the AI analysis layer adds confidence scores, architectural pattern
+     recognition, and improvement recommendations.</p>
+   </div>
+
+   <div class="feature-card reveal" style="--card-accent: #74b9ff; transition-delay: 0.3s">
+    <div class="feature-icon" style="background: rgba(116,185,255,0.1);">📊</div>
+    <h3>Statistics Dashboard</h3>
+    <p>File counts by type, size breakdowns, largest files, directory depth — quantified project metrics that give you
+     an immediate sense of scale and complexity.</p>
+   </div>
+  </div>
+ </section>
+
+ <div class="divider"></div>
+
+ <!-- ── How it works ───────────────────────────────────────────────────── -->
+ <section id="how-it-works">
+  <div class="reveal">
+   <div class="section-label">How it works</div>
+   <h2>Three steps to full<br>project clarity</h2>
+   <p class="section-sub">Blueprints does the heavy lifting so you can focus on understanding, not setup.</p>
+  </div>
+
+  <div class="steps">
+   <div class="step reveal" style="transition-delay: 0.05s">
+    <div class="step-number">01</div>
+    <div>
+     <h3>Upload your project</h3>
+     <p>Drag in a ZIP file or paste a GitHub repository URL. Blueprints extracts and indexes the entire codebase in the
+      background.</p>
+    </div>
+   </div>
+
+   <div class="step reveal" style="transition-delay: 0.15s">
+    <div class="step-number">02</div>
+    <div>
+     <h3>Analysis runs instantly</h3>
+     <p>All analyzers run in parallel — tech stack, dependencies, directory structure, and API flow detection complete
+      in a few seconds and are cached to the database.</p>
+    </div>
+   </div>
+
+   <div class="step reveal" style="transition-delay: 0.25s">
+    <div class="step-number">03</div>
+    <div>
+     <h3>Explore and share</h3>
+     <p>Browse every tab at your own pace. Optionally trigger AI analysis for deeper insights. Every subsequent page
+      load is instant — results are persisted.</p>
+    </div>
+   </div>
+  </div>
+ </section>
+
+ <div class="divider"></div>
+
+ <!-- ── Stack support ──────────────────────────────────────────────────── -->
+ <section id="stack">
+  <div class="reveal">
+   <div class="section-label">Stack support</div>
+   <h2>Works with your ecosystem</h2>
+   <p class="section-sub">Deep support for the JavaScript and JVM worlds, with more ecosystems on the way.</p>
+  </div>
+
+  <div class="stack-grid reveal">
+   <div class="stack-item"><span class="stack-dot" style="background:#68a063"></span>Node.js</div>
+   <div class="stack-item"><span class="stack-dot" style="background:#00d9ff"></span>Express.js</div>
+   <div class="stack-item"><span class="stack-dot" style="background:#61dafb"></span>React</div>
+   <div class="stack-item"><span class="stack-dot" style="background:#3178c6"></span>TypeScript</div>
+   <div class="stack-item"><span class="stack-dot" style="background:#6db33f"></span>Spring Boot</div>
+   <div class="stack-item"><span class="stack-dot" style="background:#e76f00"></span>Maven</div>
+   <div class="stack-item"><span class="stack-dot" style="background:#02303a"></span>Gradle</div>
+   <div class="stack-item"><span class="stack-dot" style="background:#7952b3"></span>Kotlin</div>
+   <div class="stack-item"><span class="stack-dot" style="background:#336791"></span>PostgreSQL</div>
+   <div class="stack-item"><span class="stack-dot" style="background:#d82c20"></span>Redis</div>
+   <div class="stack-item"><span class="stack-dot" style="background:#47a248"></span>MongoDB</div>
+   <div class="stack-item"><span class="stack-dot" style="background:#2496ed"></span>Docker</div>
+   <div class="stack-item"><span class="stack-dot" style="background:#a29bfe"></span>+ more coming</div>
+  </div>
+ </section>
+
+ <div class="divider"></div>
+
+ <!-- ── CTA ────────────────────────────────────────────────────────────── -->
+ <div class="cta-section">
+  <div class="cta-box reveal">
+   <h2 class="display">Ready to read your codebase?</h2>
+   <p>Self-host Blueprints on your own infrastructure in minutes.<br>Free, open source, no account required.</p>
+   <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+    <a href="https://github.com" class="btn-primary">
+     <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+      <path
+       d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+     </svg>
+     Star on GitHub
+    </a>
+    <a href="https://github.com" class="btn-secondary">
+     Read the docs
+     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
+     </svg>
+    </a>
+   </div>
+  </div>
+ </div>
+
+ <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+ <footer>
+  <div class="nav-logo" style="font-size:15px; gap:9px;">
+   <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+    <rect x="1" y="1" width="26" height="26" rx="6" stroke="#00d9ff" stroke-width="1.5" stroke-dasharray="4 2"
+     opacity="0.5" />
+    <rect x="5" y="5" width="8" height="8" rx="2" fill="#00d9ff" opacity="0.8" />
+    <rect x="15" y="5" width="8" height="8" rx="2" fill="#00d9ff" opacity="0.3" />
+    <rect x="5" y="15" width="8" height="8" rx="2" fill="#00d9ff" opacity="0.3" />
+    <rect x="15" y="15" width="8" height="8" rx="2" fill="#00d9ff" opacity="0.6" />
+   </svg>
+   Blueprints
+  </div>
+  <p>Built with Node.js, React, PostgreSQL & Groq</p>
+  <a href="https://github.com">GitHub →</a>
+ </footer>
+
+ <script>
+  // Intersection observer for scroll reveals
+  const observer = new IntersectionObserver((entries) => {
+   entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+     entry.target.classList.add('visible');
+     observer.unobserve(entry.target);
+    }
+   });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Stagger children inside feature grid
+  document.querySelectorAll('.feature-card.reveal').forEach((el, i) => {
+   el.style.transitionDelay = `${i * 0.07}s`;
+  });
+
+  // Animate preview tabs cycling
+  const tabs = document.querySelectorAll('.preview-tab');
+  let current = 0;
+  setInterval(() => {
+   tabs[current].classList.remove('active');
+   current = (current + 1) % tabs.length;
+   tabs[current].classList.add('active');
+  }, 2200);
+ </script>
+</body>
+
+</html>
