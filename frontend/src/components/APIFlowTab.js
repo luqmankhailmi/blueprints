@@ -30,10 +30,17 @@ const APIFlowTab = ({ flows, project }) => {
       'ROUTE': '#ff9f43',
       'MIDDLEWARE': '#a29bfe',
       'CONTROLLER': '#00b894',
+      'SERVICE': '#f093fb',
+      'DATABASE': '#667eea',
       'START': '#667eea',
       'END': '#f093fb',
+      'HANDLER': '#00d9ff',
       'middleware': '#a29bfe',
-      'handler': '#00b894',
+      'handler': '#00d9ff',
+      'controller': '#00b894',
+      'service': '#f093fb',
+      'database': '#667eea',
+      'route': '#ff9f43',
       'file': '#ff9f43',
       'start': '#667eea',
       'end': '#f093fb',
@@ -46,8 +53,11 @@ const APIFlowTab = ({ flows, project }) => {
     if (typeUpper === 'START') return '⚡';
     if (typeUpper === 'END') return '✓';
     if (typeUpper === 'MIDDLEWARE') return '⚙';
-    if (typeUpper === 'HANDLER') return '📋';
-    if (typeUpper === 'FILE') return '📄';
+    if (typeUpper === 'HANDLER') return '🔧';
+    if (typeUpper === 'CONTROLLER') return '📋';
+    if (typeUpper === 'SERVICE') return '⚗️';
+    if (typeUpper === 'DATABASE') return '🗄️';
+    if (typeUpper === 'ROUTE' || typeUpper === 'FILE') return '📄';
     return '●';
   };
 
@@ -201,8 +211,9 @@ const APIFlowTab = ({ flows, project }) => {
           background: 'rgba(0, 217, 255, 0.05)',
           borderRadius: '8px',
           border: '1px solid rgba(0, 217, 255, 0.1)',
-          display: 'flex',
-          justifyContent: 'space-around',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+          gap: '16px',
           fontSize: '13px'
         }}>
           <div style={{ textAlign: 'center' }}>
@@ -217,10 +228,24 @@ const APIFlowTab = ({ flows, project }) => {
           </div>
           <div style={{ textAlign: 'center' }}>
             <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Handlers</div>
-            <div style={{ color: '#00b894', fontWeight: '700', fontSize: '18px' }}>
+            <div style={{ color: '#00d9ff', fontWeight: '700', fontSize: '18px' }}>
               {nodes.filter(n => n.type === 'handler').length}
             </div>
           </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Controllers</div>
+            <div style={{ color: '#00b894', fontWeight: '700', fontSize: '18px' }}>
+              {nodes.filter(n => n.type === 'controller').length}
+            </div>
+          </div>
+          {nodes.filter(n => n.type === 'service').length > 0 && (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Services</div>
+              <div style={{ color: '#f093fb', fontWeight: '700', fontSize: '18px' }}>
+                {nodes.filter(n => n.type === 'service').length}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
