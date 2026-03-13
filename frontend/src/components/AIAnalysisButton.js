@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Sparkles, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 
@@ -8,11 +8,7 @@ const AIAnalysisButton = ({ projectId, onAnalysisComplete }) => {
   const [error, setError] = useState(null);
   const [insights, setInsights] = useState(null);
 
-  useEffect(() => {
-    fetchAIStatus();
-  }, [projectId]);
-
-  const fetchAIStatus = async () => {
+  const fetchAIStatus = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
@@ -24,8 +20,14 @@ const AIAnalysisButton = ({ projectId, onAnalysisComplete }) => {
       setAiStatus(response.data);
     } catch (err) {
       console.error('Failed to fetch AI status:', err);
+      // Set a safe default so the button still renders
+      setAiStatus({ groqConfigured: false, aiAnalyzed: false });
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchAIStatus();
+  }, [fetchAIStatus]);
 
   const executeAIAnalysis = async () => {
     setStatus('loading');
@@ -43,7 +45,7 @@ const AIAnalysisButton = ({ projectId, onAnalysisComplete }) => {
 
       setStatus('success');
       setInsights(response.data.insights);
-      
+
       // Notify parent component to refresh data
       if (onAnalysisComplete) {
         onAnalysisComplete(response.data.techStack);
@@ -58,7 +60,7 @@ const AIAnalysisButton = ({ projectId, onAnalysisComplete }) => {
     } catch (err) {
       setStatus('error');
       setError(err.response?.data?.error || 'AI analysis failed');
-      
+
       // Auto-reset error after 5 seconds
       setTimeout(() => {
         setStatus('idle');
@@ -98,11 +100,11 @@ const AIAnalysisButton = ({ projectId, onAnalysisComplete }) => {
           disabled={status === 'loading'}
           style={{
             padding: '12px 24px',
-            background: status === 'success' 
+            background: status === 'success'
               ? 'linear-gradient(135deg, #00b894 0%, #00cec9 100%)'
               : status === 'error'
-              ? 'linear-gradient(135deg, #d63031 0%, #ff7675 100%)'
-              : 'linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%)',
+                ? 'linear-gradient(135deg, #d63031 0%, #ff7675 100%)'
+                : 'linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%)',
             border: 'none',
             borderRadius: '10px',
             color: '#fff',
@@ -194,9 +196,9 @@ const AIAnalysisButton = ({ projectId, onAnalysisComplete }) => {
           border: '1px solid rgba(162, 155, 254, 0.2)',
           borderRadius: '12px',
         }}>
-          <h4 style={{ 
-            fontSize: '14px', 
-            color: '#a29bfe', 
+          <h4 style={{
+            fontSize: '14px',
+            color: '#a29bfe',
             marginBottom: '12px',
             display: 'flex',
             alignItems: 'center',
@@ -205,7 +207,7 @@ const AIAnalysisButton = ({ projectId, onAnalysisComplete }) => {
             <Sparkles size={16} />
             AI Insights
           </h4>
-          
+
           {insights.architecture && (
             <div style={{ marginBottom: '12px' }}>
               <strong style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>Architecture:</strong>

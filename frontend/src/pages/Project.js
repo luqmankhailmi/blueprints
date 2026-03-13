@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { projectAPI, flowAPI, architectureAPI } from '../services/api';
-import { 
-  Upload, ArrowLeft, FileCode, Zap, Layout, Package, 
+import {
+  Upload, ArrowLeft, FileCode, Zap, Layout, Package,
   Code2, BarChart3, FolderTree, Activity
 } from 'lucide-react';
 import '../styles/Project.css';
@@ -72,7 +72,7 @@ const Project = () => {
 
   const fetchArchitecture = async () => {
     if (architecture) return; // Already loaded
-    
+
     setLoadingArchitecture(true);
     try {
       const response = await architectureAPI.getArchitecture(id);
@@ -149,7 +149,7 @@ const Project = () => {
 
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab project={project} architecture={architecture} flows={flows} />;
+        return <OverviewTab project={project} architecture={architecture} flows={flows} projectId={id} onAnalysisComplete={(newTechStack) => setArchitecture(prev => ({ ...prev, techStack: newTechStack }))} />;
       case 'api-flow':
         return <APIFlowTab flows={flows} project={project} />;
       case 'files':
@@ -185,8 +185,8 @@ const Project = () => {
           <div className="project-title">
             <h1>{project?.name}</h1>
             <p className="project-subtitle">
-              {project?.source_type === 'github' 
-                ? `📦 ${project.github_repo_name} • ${project.github_branch}` 
+              {project?.source_type === 'github'
+                ? `📦 ${project.github_repo_name} • ${project.github_branch}`
                 : project?.file_name ? `📁 ${project.file_name}` : '📂 Uploaded project'}
             </p>
           </div>
@@ -200,7 +200,7 @@ const Project = () => {
               <Upload size={48} className="upload-icon" />
               <h2>Upload Your Project</h2>
               <p>Upload a ZIP file of your project to analyze its architecture</p>
-              
+
               <div className="upload-area">
                 <input
                   type="file"
@@ -232,7 +232,7 @@ const Project = () => {
               <h2>Analyze GitHub Repository</h2>
               <p className="repo-info">Repository: <strong>{project.github_repo_name}</strong></p>
               <p className="repo-info">Branch: <strong>{project.github_branch}</strong></p>
-              
+
               <button
                 className="btn-primary"
                 onClick={handleAnalyzeGitHub}

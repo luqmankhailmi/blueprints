@@ -9,7 +9,7 @@ const TechStackDetector = require('../services/techStackDetector');
 exports.executeAIAnalysis = async (req, res) => {
   try {
     const projectId = req.params.id;
-    const userId = req.user.id;
+    const userId = req.userId;
 
     // Check if GROQ_API_KEY is configured
     if (!process.env.GROQ_API_KEY) {
@@ -99,7 +99,7 @@ exports.executeAIAnalysis = async (req, res) => {
 exports.getAIAnalysisStatus = async (req, res) => {
   try {
     const projectId = req.params.id;
-    const userId = req.user.id;
+    const userId = req.userId;
 
     const result = await pool.query(
       `SELECT ai_analyzed, ai_analysis_date, ai_model 

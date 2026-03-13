@@ -15,7 +15,7 @@ class TechStackDetector {
       ]);
 
       const [packageJsonTech, fileTech, configTech] = detections;
-      
+
       // Categorized tech stack structure
       return {
         frontend: this.detectFrontend(packageJsonTech, fileTech, configTech),
@@ -38,15 +38,44 @@ class TechStackDetector {
 
   async detectFromPackageJson() {
     try {
-      const content = await fs.readFile(path.join(this.projectPath, 'package.json'), 'utf-8');
-      const packageJson = JSON.parse(content);
-      return {
-        ...packageJson.dependencies,
-        ...packageJson.devDependencies,
-      };
+      const allDeps = {};
+      const packageFiles = await this.findAllPackageJson(this.projectPath);
+
+      for (const filePath of packageFiles) {
+        try {
+          const content = await fs.readFile(filePath, 'utf-8');
+          const packageJson = JSON.parse(content);
+          Object.assign(allDeps, packageJson.dependencies, packageJson.devDependencies);
+        } catch {
+          // Skip unreadable files
+        }
+      }
+
+      return allDeps;
     } catch {
       return {};
     }
+  }
+
+  async findAllPackageJson(dir, depth = 0) {
+    if (depth > 5) return [];
+    const results = [];
+    try {
+      const entries = await fs.readdir(dir);
+      for (const entry of entries) {
+        if (this.shouldSkip(entry)) continue;
+        const fullPath = path.join(dir, entry);
+        const stats = await fs.stat(fullPath);
+        if (stats.isDirectory()) {
+          results.push(...await this.findAllPackageJson(fullPath, depth + 1));
+        } else if (entry === 'package.json') {
+          results.push(fullPath);
+        }
+      }
+    } catch {
+      // Ignore inaccessible dirs
+    }
+    return results;
   }
 
   async detectFromFiles() {
@@ -79,13 +108,13 @@ class TechStackDetector {
 
     try {
       const entries = await fs.readdir(dir);
-      
+
       for (const entry of entries) {
         if (this.shouldSkip(entry)) continue;
-        
+
         const fullPath = path.join(dir, entry);
         const stats = await fs.stat(fullPath);
-        
+
         if (stats.isDirectory()) {
           await this.countFileExtensions(fullPath, extensions, counts, depth + 1);
         } else {
@@ -197,9 +226,9 @@ class TechStackDetector {
     if (deps.recoil) frontend.stateManagement.push({ name: 'Recoil', version: deps.recoil });
     if (deps.valtio) frontend.stateManagement.push({ name: 'Valtio', version: deps.valtio });
     if (deps['react-query'] || deps['@tanstack/react-query']) {
-      frontend.stateManagement.push({ 
-        name: 'React Query', 
-        version: deps['@tanstack/react-query'] || deps['react-query'] 
+      frontend.stateManagement.push({
+        name: 'React Query',
+        version: deps['@tanstack/react-query'] || deps['react-query']
       });
     }
     if (deps.swr) frontend.stateManagement.push({ name: 'SWR', version: deps.swr });
@@ -236,10 +265,10 @@ class TechStackDetector {
     if (deps.recharts) frontend.libraries.push({ name: 'Recharts', version: deps.recharts, category: 'Charts' });
     if (deps['chart.js']) frontend.libraries.push({ name: 'Chart.js', version: deps['chart.js'], category: 'Charts' });
     if (deps['react-flow-renderer'] || deps.reactflow) {
-      frontend.libraries.push({ 
-        name: 'React Flow', 
-        version: deps.reactflow || deps['react-flow-renderer'], 
-        category: 'Diagrams' 
+      frontend.libraries.push({
+        name: 'React Flow',
+        version: deps.reactflow || deps['react-flow-renderer'],
+        category: 'Diagrams'
       });
     }
 
@@ -249,7 +278,7 @@ class TechStackDetector {
   detectFrontendLanguage(fileCounts) {
     const tsCount = (fileCounts['.ts'] || 0) + (fileCounts['.tsx'] || 0);
     const jsCount = (fileCounts['.js'] || 0) + (fileCounts['.jsx'] || 0);
-    
+
     if (tsCount > 0 && tsCount > jsCount) return 'TypeScript';
     if (jsCount > 0) return 'JavaScript';
     return null;
@@ -373,15 +402,15 @@ class TechStackDetector {
     // Relational Databases
     if (deps.pg) databases.relational.push({ name: 'PostgreSQL', version: deps.pg, driver: 'node-postgres' });
     if (deps.mysql || deps.mysql2) {
-      databases.relational.push({ 
-        name: 'MySQL', 
+      databases.relational.push({
+        name: 'MySQL',
         version: deps.mysql2 || deps.mysql,
         driver: deps.mysql2 ? 'mysql2' : 'mysql'
       });
     }
     if (deps.sqlite3 || deps['better-sqlite3']) {
-      databases.relational.push({ 
-        name: 'SQLite', 
+      databases.relational.push({
+        name: 'SQLite',
         version: deps['better-sqlite3'] || deps.sqlite3,
         driver: deps['better-sqlite3'] ? 'better-sqlite3' : 'sqlite3'
       });
@@ -395,9 +424,9 @@ class TechStackDetector {
     if (deps.mongoose) databases.nosql.push({ name: 'MongoDB', version: deps.mongoose, driver: 'mongoose' });
     if (deps['@aws-sdk/client-dynamodb']) databases.nosql.push({ name: 'AWS DynamoDB', version: deps['@aws-sdk/client-dynamodb'] });
     if (deps.firebase || deps['firebase-admin']) {
-      databases.nosql.push({ 
-        name: 'Firebase/Firestore', 
-        version: deps['firebase-admin'] || deps.firebase 
+      databases.nosql.push({
+        name: 'Firebase/Firestore',
+        version: deps['firebase-admin'] || deps.firebase
       });
     }
     if (deps.couchdb) databases.nosql.push({ name: 'CouchDB', version: deps.couchdb });
@@ -405,8 +434,8 @@ class TechStackDetector {
 
     // Cache & In-Memory Databases
     if (deps.redis || deps.ioredis) {
-      databases.cache.push({ 
-        name: 'Redis', 
+      databases.cache.push({
+        name: 'Redis',
         version: deps.ioredis || deps.redis,
         driver: deps.ioredis ? 'ioredis' : 'redis'
       });
@@ -416,9 +445,9 @@ class TechStackDetector {
     // Search Engines
     if (deps['@elastic/elasticsearch']) databases.search.push({ name: 'Elasticsearch', version: deps['@elastic/elasticsearch'] });
     if (deps.algolia || deps['@algolia/client-search']) {
-      databases.search.push({ 
-        name: 'Algolia', 
-        version: deps['@algolia/client-search'] || deps.algolia 
+      databases.search.push({
+        name: 'Algolia',
+        version: deps['@algolia/client-search'] || deps.algolia
       });
     }
     if (deps.meilisearch) databases.search.push({ name: 'Meilisearch', version: deps.meilisearch });

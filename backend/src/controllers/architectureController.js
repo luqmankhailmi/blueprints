@@ -23,23 +23,30 @@ exports.getArchitecture = async (req, res) => {
     }
 
     const project = projectResult.rows[0];
-    
+
     if (!project.file_path) {
       return res.status(400).json({ error: 'Project has not been uploaded yet' });
     }
 
     const projectPath = project.file_path;
 
-    // Run all analyzers in parallel
+    // Run directory and dependency analyzers in parallel
     const directoryAnalyzer = new DirectoryAnalyzer(projectPath);
     const dependencyAnalyzer = new DependencyAnalyzer(projectPath);
-    const techStackDetector = new TechStackDetector(projectPath);
 
-    const [directory, dependencies, techStack] = await Promise.all([
+    const [directory, dependencies] = await Promise.all([
       directoryAnalyzer.analyze(),
       dependencyAnalyzer.analyze(),
-      techStackDetector.detect()
     ]);
+
+    // Use saved AI-enhanced tech stack if available, otherwise run basic detection
+    let techStack;
+    if (project.tech_stack) {
+      techStack = project.tech_stack; // Already AI-enhanced, persisted from last analysis
+    } else {
+      const techStackDetector = new TechStackDetector(projectPath);
+      techStack = await techStackDetector.detect();
+    }
 
     res.json({
       projectId: id,
@@ -47,13 +54,14 @@ exports.getArchitecture = async (req, res) => {
       directory,
       dependencies,
       techStack,
+      aiEnhanced: !!project.tech_stack,
       analyzedAt: new Date()
     });
   } catch (error) {
     console.error('Architecture analysis error:', error);
-    res.status(500).json({ 
-      error: 'Failed to analyze architecture', 
-      message: error.message 
+    res.status(500).json({
+      error: 'Failed to analyze architecture',
+      message: error.message
     });
   }
 };
@@ -82,9 +90,9 @@ exports.getDirectoryStructure = async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Directory analysis error:', error);
-    res.status(500).json({ 
-      error: 'Failed to analyze directory', 
-      message: error.message 
+    res.status(500).json({
+      error: 'Failed to analyze directory',
+      message: error.message
     });
   }
 };
@@ -118,9 +126,9 @@ exports.getFileContent = async (req, res) => {
     res.json(content);
   } catch (error) {
     console.error('File content error:', error);
-    res.status(500).json({ 
-      error: 'Failed to get file content', 
-      message: error.message 
+    res.status(500).json({
+      error: 'Failed to get file content',
+      message: error.message
     });
   }
 };

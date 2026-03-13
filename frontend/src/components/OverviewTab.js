@@ -1,7 +1,8 @@
 import React from 'react';
-import { Activity, FileCode, Package, Layers, GitBranch, Calendar } from 'lucide-react';
+import { Activity, FileCode, Package, Layers, GitBranch, Calendar, Sparkles } from 'lucide-react';
+import AIAnalysisButton from './AIAnalysisButton';
 
-const OverviewTab = ({ project, architecture, flows }) => {
+const OverviewTab = ({ project, architecture, flows, projectId, onAnalysisComplete }) => {
   if (!architecture) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
@@ -141,7 +142,8 @@ const OverviewTab = ({ project, architecture, flows }) => {
         backdropFilter: 'blur(20px)',
         border: '1px solid rgba(0, 217, 255, 0.1)',
         borderRadius: '16px',
-        padding: '24px'
+        padding: '24px',
+        marginBottom: '24px'
       }}>
         <h3 style={{ fontSize: '18px', marginBottom: '16px', color: '#fff' }}>Project Information</h3>
         <div style={{ display: 'grid', gap: '12px' }}>
@@ -160,6 +162,24 @@ const OverviewTab = ({ project, architecture, flows }) => {
             </div>
           )}
         </div>
+      </div>
+
+      {/* AI Analysis Section */}
+      <div style={{
+        background: 'rgba(26, 31, 53, 0.6)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(162, 155, 254, 0.2)',
+        borderRadius: '16px',
+        padding: '24px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+          <Sparkles size={20} style={{ color: '#a29bfe' }} />
+          <h3 style={{ fontSize: '18px', color: '#fff', margin: 0 }}>AI Analysis</h3>
+        </div>
+        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', marginBottom: '20px', lineHeight: '1.6' }}>
+          Runs Llama 3.3 70B on your actual code files to detect technologies, architecture patterns, and improvement recommendations beyond what basic analysis can find.
+        </p>
+        <AIAnalysisButton projectId={projectId} onAnalysisComplete={onAnalysisComplete} />
       </div>
     </div>
   );
