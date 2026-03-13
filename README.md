@@ -4,6 +4,9 @@ A full-stack application that analyzes your codebase and visualizes its architec
 
 ## Features
 
+### Lite version (demo)
+Link: https://luqmankhailmi.github.io/blueprints-lite/
+
 ### ✨ Current Features
 
 1. **User Authentication**
