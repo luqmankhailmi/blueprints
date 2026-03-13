@@ -30,22 +30,33 @@ exports.getArchitecture = async (req, res) => {
 
     const projectPath = project.file_path;
 
-    // Run directory and dependency analyzers in parallel
-    const directoryAnalyzer = new DirectoryAnalyzer(projectPath);
-    const dependencyAnalyzer = new DependencyAnalyzer(projectPath);
+    // Use cached analysis from DB — avoids re-scanning on every page load
+    const hasCachedData = project.directory_data && project.dependencies_data;
 
-    const [directory, dependencies] = await Promise.all([
-      directoryAnalyzer.analyze(),
-      dependencyAnalyzer.analyze(),
-    ]);
+    let directory, dependencies, techStack;
 
-    // Use saved AI-enhanced tech stack if available, otherwise run basic detection
-    let techStack;
-    if (project.tech_stack) {
-      techStack = project.tech_stack; // Already AI-enhanced, persisted from last analysis
+    if (hasCachedData) {
+      directory = project.directory_data;
+      dependencies = project.dependencies_data;
+      techStack = project.tech_stack || {};
     } else {
+      // Cache missing — run live and save for next time
+      const directoryAnalyzer = new DirectoryAnalyzer(projectPath);
+      const dependencyAnalyzer = new DependencyAnalyzer(projectPath);
       const techStackDetector = new TechStackDetector(projectPath);
-      techStack = await techStackDetector.detect();
+
+      [directory, dependencies, techStack] = await Promise.all([
+        directoryAnalyzer.analyze(),
+        dependencyAnalyzer.analyze(),
+        techStackDetector.detect(),
+      ]);
+
+      await pool.query(
+        `UPDATE projects 
+         SET directory_data = $1, dependencies_data = $2, tech_stack = COALESCE(tech_stack, $3)
+         WHERE id = $4`,
+        [JSON.stringify(directory), JSON.stringify(dependencies), JSON.stringify(techStack), id]
+      );
     }
 
     res.json({
@@ -54,7 +65,7 @@ exports.getArchitecture = async (req, res) => {
       directory,
       dependencies,
       techStack,
-      aiEnhanced: !!project.tech_stack,
+      aiEnhanced: !!(project.tech_stack?.aiEnhanced),
       analyzedAt: new Date()
     });
   } catch (error) {

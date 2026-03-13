@@ -147,7 +147,7 @@ const Dashboard = () => {
         <div className="dashboard-header">
           <div>
             <h1>Your Projects</h1>
-            <p>Manage and analyze your Express.js applications</p>
+            <p>Manage and analyze your applications</p>
           </div>
           <button className="btn-primary" onClick={() => setShowNewProject(true)}>
             <Plus size={20} />
@@ -227,9 +227,9 @@ const Dashboard = () => {
                   <button type="button" className="btn-secondary" onClick={() => setShowNewProject(false)}>
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
-                    className="btn-primary" 
+                  <button
+                    type="submit"
+                    className="btn-primary"
                     disabled={creating || (sourceType === 'github' && !selectedRepo)}
                   >
                     {creating ? 'Creating...' : 'Create'}
@@ -269,7 +269,7 @@ const Dashboard = () => {
                     <Trash2 size={18} />
                   </button>
                 </div>
-                
+
                 <div className="project-info">
                   <div className="info-item">
                     <Calendar size={16} />

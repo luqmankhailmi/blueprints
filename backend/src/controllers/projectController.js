@@ -2,6 +2,9 @@ const pool = require('../config/database');
 const path = require('path');
 const fs = require('fs').promises;
 const FlowAnalyzer = require('../services/flowAnalyzer');
+const DirectoryAnalyzer = require('../services/directoryAnalyzer');
+const DependencyAnalyzer = require('../services/dependencyAnalyzer');
+const TechStackDetector = require('../services/techStackDetector');
 const GitHubService = require('../services/githubService');
 
 const createProject = async (req, res) => {
@@ -64,7 +67,7 @@ const analyzeGitHubRepo = async (req, res) => {
     // Download repository
     const githubService = new GitHubService(user.github_token);
     const tempDir = path.join(__dirname, '../../uploads', `github_${Date.now()}`);
-    
+
     await githubService.downloadRepository(owner, repo, project.github_branch || 'main', tempDir);
 
     // Analyze the repository
@@ -163,14 +166,14 @@ const uploadProjectFile = async (req, res) => {
     const AdmZip = require('adm-zip');
     const zip = new AdmZip(req.file.path);
     const extractPath = path.join(path.dirname(req.file.path), `extracted_${id}`);
-    
+
     // Remove old extraction if exists
     try {
       await fs.rm(extractPath, { recursive: true, force: true });
     } catch (err) {
       // Ignore if doesn't exist
     }
-    
+
     // Extract to permanent location
     zip.extractAllTo(extractPath, true);
 
@@ -180,9 +183,26 @@ const uploadProjectFile = async (req, res) => {
       [extractPath, req.file.originalname, req.file.size, id]
     );
 
-    // Analyze the extracted project (not the ZIP)
-    const analyzer = new FlowAnalyzer();
-    const flows = await analyzer.analyzeProject(extractPath, true); // true = already extracted
+    // Run all analyzers in parallel at upload time so they're cached
+    const flowAnalyzer = new FlowAnalyzer();
+    const directoryAnalyzer = new DirectoryAnalyzer(extractPath);
+    const dependencyAnalyzer = new DependencyAnalyzer(extractPath);
+    const techStackDetector = new TechStackDetector(extractPath);
+
+    const [flows, directory, dependencies, techStack] = await Promise.all([
+      flowAnalyzer.analyzeProject(extractPath, true),
+      directoryAnalyzer.analyze(),
+      dependencyAnalyzer.analyze(),
+      techStackDetector.detect(),
+    ]);
+
+    // Persist analysis results to DB
+    await pool.query(
+      `UPDATE projects 
+       SET directory_data = $1, dependencies_data = $2, tech_stack = $3
+       WHERE id = $4`,
+      [JSON.stringify(directory), JSON.stringify(dependencies), JSON.stringify(techStack), id]
+    );
 
     // Delete existing flows for this project
     await pool.query('DELETE FROM flows WHERE project_id = $1', [id]);

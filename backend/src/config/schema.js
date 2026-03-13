@@ -35,6 +35,8 @@ const createTables = async () => {
         github_branch VARCHAR(255) DEFAULT 'main',
         uploaded_at TIMESTAMP,
         tech_stack JSONB,
+        directory_data JSONB,
+        dependencies_data JSONB,
         ai_analyzed BOOLEAN DEFAULT FALSE,
         ai_analysis_date TIMESTAMP,
         ai_model VARCHAR(100),

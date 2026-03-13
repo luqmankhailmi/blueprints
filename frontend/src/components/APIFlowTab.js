@@ -51,7 +51,7 @@ const APIFlowTab = ({ flows, project }) => {
       <div style={{ display: 'grid', gap: '20px' }}>
         {flows.map((flow, index) => {
           const flowData = typeof flow.flow_data === 'string' ? JSON.parse(flow.flow_data) : flow.flow_data;
-          
+
           return (
             <div
               key={index}
