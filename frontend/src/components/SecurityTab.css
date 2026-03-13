@@ -1,0 +1,302 @@
+.security-tab {
+ padding: 24px;
+}
+
+.security-header {
+ margin-bottom: 32px;
+}
+
+.security-header h2 {
+ font-size: 28px;
+ margin-bottom: 8px;
+ color: #fff;
+}
+
+.analyzed-time {
+ color: rgba(255, 255, 255, 0.5);
+ font-size: 14px;
+}
+
+.security-score-card {
+ background: linear-gradient(135deg, rgba(0, 217, 255, 0.1), rgba(102, 126, 234, 0.1));
+ border: 2px solid rgba(0, 217, 255, 0.3);
+ border-radius: 20px;
+ padding: 40px;
+ margin-bottom: 40px;
+ text-align: center;
+}
+
+.score-label {
+ font-size: 16px;
+ color: rgba(255, 255, 255, 0.6);
+ margin-bottom: 12px;
+ text-transform: uppercase;
+ letter-spacing: 2px;
+}
+
+.score-value {
+ font-size: 72px;
+ font-weight: 700;
+ margin: 16px 0;
+}
+
+.score-value.excellent {
+ color: #00b894;
+}
+
+.score-value.good {
+ color: #00d9ff;
+}
+
+.score-value.fair {
+ color: #ff9f43;
+}
+
+.score-value.poor {
+ color: #ff556c;
+}
+
+.score-grade {
+ font-size: 24px;
+ font-weight: 600;
+ margin-bottom: 24px;
+ color: rgba(255, 255, 255, 0.9);
+}
+
+.security-progress {
+ width: 100%;
+ height: 24px;
+ background: rgba(0, 0, 0, 0.3);
+ border-radius: 12px;
+ overflow: hidden;
+ margin: 24px 0;
+}
+
+.security-progress-bar {
+ height: 100%;
+ transition: width 1.5s ease;
+ border-radius: 12px;
+}
+
+.severity-stats {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+ gap: 20px;
+ margin-top: 32px;
+}
+
+.severity-stat {
+ text-align: center;
+ padding: 20px;
+ background: rgba(0, 0, 0, 0.2);
+ border-radius: 16px;
+ transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.severity-stat:hover {
+ transform: translateY(-4px);
+ box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.severity-stat-icon {
+ font-size: 40px;
+ margin-bottom: 12px;
+}
+
+.severity-stat-count {
+ font-size: 32px;
+ font-weight: 700;
+ margin-bottom: 8px;
+}
+
+.severity-stat-label {
+ font-size: 13px;
+ text-transform: uppercase;
+ opacity: 0.7;
+ letter-spacing: 1px;
+ color: rgba(255, 255, 255, 0.8);
+}
+
+.no-issues {
+ text-align: center;
+ padding: 80px 20px;
+}
+
+.no-issues-icon {
+ margin-bottom: 24px;
+}
+
+.no-issues h3 {
+ font-size: 28px;
+ margin-bottom: 12px;
+ color: #00b894;
+}
+
+.no-issues p {
+ font-size: 16px;
+ color: rgba(255, 255, 255, 0.6);
+}
+
+.issues-section {
+ margin-top: 32px;
+}
+
+.issues-title {
+ font-size: 20px;
+ margin-bottom: 24px;
+ color: rgba(255, 255, 255, 0.9);
+}
+
+.issues-list {
+ display: flex;
+ flex-direction: column;
+ gap: 20px;
+}
+
+.issue-card {
+ background: rgba(26, 31, 53, 0.6);
+ border-left: 4px solid;
+ border-radius: 16px;
+ padding: 24px;
+ transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.issue-card:hover {
+ transform: translateX(4px);
+ box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.issue-card.critical {
+ border-left-color: #ff556c;
+ background: rgba(255, 85, 108, 0.05);
+}
+
+.issue-card.high {
+ border-left-color: #ff9f43;
+ background: rgba(255, 159, 67, 0.05);
+}
+
+.issue-card.medium {
+ border-left-color: #f093fb;
+ background: rgba(240, 147, 251, 0.05);
+}
+
+.issue-card.low {
+ border-left-color: #00d9ff;
+ background: rgba(0, 217, 255, 0.05);
+}
+
+.issue-header {
+ display: flex;
+ align-items: center;
+ gap: 16px;
+ margin-bottom: 16px;
+}
+
+.issue-icon {
+ font-size: 28px;
+ flex-shrink: 0;
+}
+
+.issue-title {
+ flex: 1;
+ font-size: 18px;
+ font-weight: 600;
+ color: #fff;
+}
+
+.issue-severity {
+ padding: 6px 16px;
+ border-radius: 16px;
+ font-size: 12px;
+ font-weight: 700;
+ text-transform: uppercase;
+ letter-spacing: 1px;
+ flex-shrink: 0;
+}
+
+.severity-critical {
+ background: rgba(255, 85, 108, 0.2);
+ color: #ff556c;
+}
+
+.severity-high {
+ background: rgba(255, 159, 67, 0.2);
+ color: #ff9f43;
+}
+
+.severity-medium {
+ background: rgba(240, 147, 251, 0.2);
+ color: #f093fb;
+}
+
+.severity-low {
+ background: rgba(0, 217, 255, 0.2);
+ color: #00d9ff;
+}
+
+.issue-location {
+ font-family: 'Monaco', 'Consolas', monospace;
+ font-size: 14px;
+ color: rgba(255, 255, 255, 0.6);
+ margin-bottom: 16px;
+}
+
+.issue-location-icon {
+ margin-right: 8px;
+}
+
+.issue-description {
+ color: rgba(255, 255, 255, 0.8);
+ margin-bottom: 16px;
+ font-size: 15px;
+ line-height: 1.6;
+}
+
+.issue-code {
+ background: rgba(0, 0, 0, 0.4);
+ border-radius: 12px;
+ padding: 16px;
+ font-family: 'Monaco', 'Consolas', monospace;
+ font-size: 14px;
+ color: #ff9f43;
+ margin-bottom: 16px;
+ overflow-x: auto;
+ border: 1px solid rgba(255, 159, 67, 0.2);
+}
+
+.issue-recommendation {
+ background: rgba(0, 184, 148, 0.1);
+ border: 1px solid rgba(0, 184, 148, 0.3);
+ border-radius: 12px;
+ padding: 16px;
+ margin-top: 16px;
+}
+
+.issue-recommendation-title {
+ font-size: 14px;
+ font-weight: 700;
+ color: #00b894;
+ margin-bottom: 12px;
+}
+
+.issue-recommendation-text {
+ font-size: 14px;
+ color: rgba(255, 255, 255, 0.9);
+ line-height: 1.6;
+}
+
+.issue-recommendation-text code {
+ background: rgba(0, 0, 0, 0.3);
+ padding: 4px 8px;
+ border-radius: 6px;
+ font-family: 'Monaco', 'Consolas', monospace;
+ font-size: 13px;
+ color: #00d9ff;
+ border: 1px solid rgba(0, 217, 255, 0.2);
+}
+
+.issue-recommendation-text strong {
+ color: #00b894;
+ font-weight: 600;
+}

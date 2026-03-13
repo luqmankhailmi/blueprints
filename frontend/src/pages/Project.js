@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { projectAPI, flowAPI, architectureAPI } from '../services/api';
 import {
   Upload, ArrowLeft, FileCode, Zap, Layout, Package,
-  Code2, BarChart3, FolderTree, Activity
+  Code2, BarChart3, FolderTree, Activity, Shield
 } from 'lucide-react';
 import '../styles/Project.css';
 
@@ -14,6 +14,7 @@ import FilesTab from '../components/FilesTab';
 import DependenciesTab from '../components/DependenciesTab';
 import TechStackTab from '../components/TechStackTab';
 import StatsTab from '../components/StatsTab';
+import SecurityTab from '../components/SecurityTab';
 
 const Project = () => {
   const { id } = useParams();
@@ -33,6 +34,7 @@ const Project = () => {
     { id: 'files', label: 'Files', icon: <FolderTree size={18} /> },
     { id: 'dependencies', label: 'Dependencies', icon: <Package size={18} /> },
     { id: 'tech-stack', label: 'Tech Stack', icon: <Code2 size={18} /> },
+    { id: 'security', label: 'Security', icon: <Shield size={18} /> },
     { id: 'stats', label: 'Statistics', icon: <BarChart3 size={18} /> },
   ];
 
@@ -158,6 +160,8 @@ const Project = () => {
         return <DependenciesTab architecture={architecture} />;
       case 'tech-stack':
         return <TechStackTab architecture={architecture} />;
+      case 'security':
+        return <SecurityTab project={project} />;
       case 'stats':
         return <StatsTab architecture={architecture} />;
       default:

@@ -6,6 +6,7 @@ const DirectoryAnalyzer = require('../services/directoryAnalyzer');
 const DependencyAnalyzer = require('../services/dependencyAnalyzer');
 const TechStackDetector = require('../services/techStackDetector');
 const GitHubService = require('../services/githubService');
+const SecurityAnalyzer = require('../services/securityAnalyzer');
 
 const createProject = async (req, res) => {
   const { name, description, sourceType, githubRepoUrl, githubRepoName, githubBranch } = req.body;
@@ -72,7 +73,12 @@ const analyzeGitHubRepo = async (req, res) => {
 
     // Analyze the repository
     const analyzer = new FlowAnalyzer();
-    const flows = await analyzer.analyzeProject(tempDir, true); // Pass true to indicate it's already extracted
+    const securityAnalyzer = new SecurityAnalyzer(tempDir);
+
+    const [flows, securityReport] = await Promise.all([
+      analyzer.analyzeProject(tempDir, true),
+      securityAnalyzer.analyze()
+    ]);
 
     // Delete existing flows for this project
     await pool.query('DELETE FROM flows WHERE project_id = $1', [id]);
@@ -85,10 +91,15 @@ const analyzeGitHubRepo = async (req, res) => {
       );
     }
 
-    // Update project with analysis timestamp
+    // Update project with analysis timestamp and security results
     await pool.query(
-      'UPDATE projects SET uploaded_at = CURRENT_TIMESTAMP WHERE id = $1',
-      [id]
+      `UPDATE projects 
+       SET uploaded_at = CURRENT_TIMESTAMP,
+           security_score = $1,
+           security_issues = $2,
+           security_analyzed_at = CURRENT_TIMESTAMP
+       WHERE id = $3`,
+      [securityReport.score, JSON.stringify(securityReport.issues), id]
     );
 
     // Clean up temp directory
@@ -188,20 +199,34 @@ const uploadProjectFile = async (req, res) => {
     const directoryAnalyzer = new DirectoryAnalyzer(extractPath);
     const dependencyAnalyzer = new DependencyAnalyzer(extractPath);
     const techStackDetector = new TechStackDetector(extractPath);
+    const securityAnalyzer = new SecurityAnalyzer(extractPath);
 
-    const [flows, directory, dependencies, techStack] = await Promise.all([
+    const [flows, directory, dependencies, techStack, securityReport] = await Promise.all([
       flowAnalyzer.analyzeProject(extractPath, true),
       directoryAnalyzer.analyze(),
       dependencyAnalyzer.analyze(),
       techStackDetector.detect(),
+      securityAnalyzer.analyze(),
     ]);
 
     // Persist analysis results to DB
     await pool.query(
       `UPDATE projects 
-       SET directory_data = $1, dependencies_data = $2, tech_stack = $3
-       WHERE id = $4`,
-      [JSON.stringify(directory), JSON.stringify(dependencies), JSON.stringify(techStack), id]
+       SET directory_data = $1, 
+           dependencies_data = $2, 
+           tech_stack = $3,
+           security_score = $4,
+           security_issues = $5,
+           security_analyzed_at = CURRENT_TIMESTAMP
+       WHERE id = $6`,
+      [
+        JSON.stringify(directory),
+        JSON.stringify(dependencies),
+        JSON.stringify(techStack),
+        securityReport.score,
+        JSON.stringify(securityReport.issues),
+        id
+      ]
     );
 
     // Delete existing flows for this project
